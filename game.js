@@ -602,181 +602,184 @@ function draw() {
   // Cursor is now CSS emoji via data-tool attribute — no canvas draw needed
 }
 
-// ── BEANSTALK (CÂY ĐẬU THẦN MẬP MẠP, CĂNG MỌNG) ──────────────────────
+// ── BEANSTALK (CÂY ĐẬU THẦN CỔ THỤ THẦN TIÊN UỐN LƯỢN MƯỢT MÀ) ───────
 function drawBeanstalk(W, H) {
-  const trunkX   = 120;           // screen X of trunk center
+  const trunkX   = 115;           // screen X of trunk center
   const groundY  = H * 0.96;     // bottom of trunk on screen
-  const maxTierY = getCloudCenter(clouds[activeTier] || clouds[0], frameCount).y - 60;
-  const topY     = Math.min(maxTierY, groundY - 120);
+  const maxTierY = getCloudCenter(clouds[activeTier] || clouds[0], frameCount).y - 70;
+  const topY     = Math.min(maxTierY, groundY - 140);
 
   ctx.save();
 
-  // ── 1. Soft Ambient Green Aura Glow
-  ctx.shadowColor = 'rgba(74, 222, 128, 0.35)';
-  ctx.shadowBlur = 24;
+  // ── 1. Magical Celestial Ambient Aura
+  ctx.shadowColor = 'rgba(74, 222, 128, 0.4)';
+  ctx.shadowBlur = 28;
 
-  // ── 2. Chubby Organic Main Trunk (Thân cây to mập, uốn lượn căng mọng)
-  const segments = 12;
-  const segH = (groundY - topY) / segments;
-  const trunkRadius = 32; // Much thicker & plumper trunk width (~64px)
+  // ── 2. Smooth Continuous Majestic Beanstalk Trunk (Thân cây gỗ xoắn đôi nhẵn mượt, không đốt sâu)
+  const steps = 36;
+  const dy = (groundY - topY) / steps;
+  const baseW = 54; // Thick solid base width
+  const topW  = 38; // Tapering towards top
 
-  for (let i = 0; i < segments; i++) {
-    const y0 = groundY - i * segH;
-    const y1 = groundY - (i + 1) * segH;
-    const wobble0 = 18 * Math.sin(i * 0.9 + frameCount * 0.006);
-    const wobble1 = 18 * Math.sin((i + 1) * 0.9 + frameCount * 0.006);
+  // Left & Right continuous edge points
+  const leftPts = [];
+  const rightPts = [];
+  const midPts = [];
 
-    const x0 = trunkX + wobble0;
-    const x1 = trunkX + wobble1;
+  for (let i = 0; i <= steps; i++) {
+    const cy = groundY - i * dy;
+    const tNorm = i / steps;
+    const curW = baseW + (topW - baseW) * tNorm;
+    
+    // Smooth gentle S-curve wave (Chu kỳ dài, uốn lượn mượt mà)
+    const curveWave = 22 * Math.sin(tNorm * Math.PI * 2.2 + frameCount * 0.005);
+    const cx = trunkX + curveWave;
 
-    // Organic Wood & Vine Gradient
-    const grd = ctx.createLinearGradient(x0 - trunkRadius - 6, y0, x0 + trunkRadius + 6, y0);
-    grd.addColorStop(0, '#194d18');
-    grd.addColorStop(0.2, '#2d7a22');
-    grd.addColorStop(0.5, '#52b73b');
-    grd.addColorStop(0.75, '#76cc4e');
-    grd.addColorStop(1, '#1b541a');
-
-    ctx.beginPath();
-    ctx.moveTo(x0 - trunkRadius, y0);
-    ctx.bezierCurveTo(x0 - trunkRadius * 1.05, y0 - segH * 0.4, x1 - trunkRadius * 1.05, y1 + segH * 0.4, x1 - trunkRadius, y1);
-    ctx.lineTo(x1 + trunkRadius, y1);
-    ctx.bezierCurveTo(x1 + trunkRadius * 1.05, y1 + segH * 0.4, x0 + trunkRadius * 1.05, y0 - segH * 0.4, x0 + trunkRadius, y0);
-    ctx.closePath();
-    ctx.fillStyle = grd;
-    ctx.fill();
-
-    // ── Twisting Vine Rope (Dây leo xoắn ốc căng tròn bám quanh thân)
-    const twistPhase = i * 0.8 + frameCount * 0.008;
-    const twistX = x0 + Math.sin(twistPhase) * (trunkRadius * 0.75);
-    const twistY = y0 - segH * 0.5;
-
-    ctx.fillStyle = '#8ce055';
-    ctx.beginPath();
-    ctx.ellipse(twistX, twistY, 8, 14, Math.sin(twistPhase) * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#2d7a22';
-    ctx.lineWidth = 1.8;
-    ctx.stroke();
-
-    // Specular highlight on trunk belly
-    ctx.save();
-    ctx.globalAlpha = 0.28;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.ellipse(x0 + trunkRadius * 0.25, y0 - segH * 0.5, trunkRadius * 0.22, segH * 0.45, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    midPts.push({ x: cx, y: cy, w: curW });
+    leftPts.push({ x: cx - curW * 0.5, y: cy });
+    rightPts.push({ x: cx + curW * 0.5, y: cy });
   }
 
-  ctx.shadowBlur = 0;
+  // Draw main smooth solid trunk silhouette
+  ctx.beginPath();
+  ctx.moveTo(leftPts[0].x, leftPts[0].y);
+  for (let i = 1; i < leftPts.length; i++) {
+    const prev = leftPts[i - 1];
+    const curr = leftPts[i];
+    ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + curr.x) * 0.5, (prev.y + curr.y) * 0.5);
+  }
+  ctx.lineTo(leftPts[leftPts.length - 1].x, leftPts[leftPts.length - 1].y);
+  ctx.lineTo(rightPts[rightPts.length - 1].x, rightPts[rightPts.length - 1].y);
+  for (let i = rightPts.length - 2; i >= 0; i--) {
+    const prev = rightPts[i + 1];
+    const curr = rightPts[i];
+    ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + curr.x) * 0.5, (prev.y + curr.y) * 0.5);
+  }
+  ctx.closePath();
 
-  // ── 3. Plump Branches & Huge Chubby Leaves Reaching to Cloud Tiers
+  // Rich 3D Cylindrical Bark Gradient
+  const trunkGrd = ctx.createLinearGradient(trunkX - baseW * 0.6, 0, trunkX + baseW * 0.6, 0);
+  trunkGrd.addColorStop(0, '#153e18');
+  trunkGrd.addColorStop(0.2, '#246324');
+  trunkGrd.addColorStop(0.5, '#459d30');
+  trunkGrd.addColorStop(0.75, '#68c545');
+  trunkGrd.addColorStop(1, '#1b4a1b');
+
+  ctx.fillStyle = trunkGrd;
+  ctx.fill();
+
+  // ── 3. Smooth Intertwined Twin Vines (Dây leo xoắn đôi mượt mà uốn dọc thân)
+  ctx.save();
+  ctx.shadowBlur = 0;
+  for (let v = 0; v < 2; v++) {
+    ctx.beginPath();
+    const vOffset = v * Math.PI;
+    let started = false;
+
+    for (let i = 0; i <= steps; i++) {
+      const pt = midPts[i];
+      const tNorm = i / steps;
+      const vineX = pt.x + Math.sin(tNorm * Math.PI * 5 + vOffset + frameCount * 0.007) * (pt.w * 0.38);
+      if (!started) {
+        ctx.moveTo(vineX, pt.y);
+        started = true;
+      } else {
+        ctx.lineTo(vineX, pt.y);
+      }
+    }
+
+    // Outer shade
+    ctx.strokeStyle = v === 0 ? '#1b4d1a' : '#235919';
+    ctx.lineWidth = 9;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // Inner bright vine
+    ctx.strokeStyle = v === 0 ? '#78dc48' : '#8ef257';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    // Gloss line
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ── 4. Natural Graceful Branches Cradling Cloud Tiers (Cành cây vươn dài thanh thoát)
   for (let t = 0; t <= activeTier; t++) {
     const cloudPos = getCloudCenter(clouds[t] || clouds[0], frameCount);
-    const branchY  = cloudPos.y + 25;
+    const branchY  = cloudPos.y + 24;
     if (branchY < -60 || branchY > H + 60) continue;
 
-    const branchEndX = cloudPos.x - clouds[t].slots * CFG.CELL_W * 0.5 - 20;
-    const branchMidX = trunkX + (branchEndX - trunkX) * 0.45;
-    const branchMidY = branchY - 35;
+    // Find nearest point on trunk
+    let nearestMid = midPts[0];
+    let minD = 9999;
+    for (let pt of midPts) {
+      const d = Math.abs(pt.y - branchY);
+      if (d < minD) { minD = d; nearestMid = pt; }
+    }
 
-    // Thick Sturdy Branch Base (Cành cây to khỏe mập mạp)
+    const startX = nearestMid.x + nearestMid.w * 0.35;
+    const startY = nearestMid.y;
+    const branchEndX = cloudPos.x - clouds[t].slots * CFG.CELL_W * 0.5 - 15;
+    const branchMidX = startX + (branchEndX - startX) * 0.48;
+    const branchMidY = branchY - 32;
+
+    // Thick Smooth Wooden Branch Arch
     ctx.beginPath();
-    ctx.moveTo(trunkX + 16, branchY + 18);
+    ctx.moveTo(startX, startY);
     ctx.quadraticCurveTo(branchMidX, branchMidY, branchEndX, branchY);
-    ctx.strokeStyle = '#235919';
-    ctx.lineWidth = 22; // Much thicker branch
+    ctx.strokeStyle = '#1b4d1a';
+    ctx.lineWidth = 18;
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // Inner bright bark layer
     ctx.beginPath();
-    ctx.moveTo(trunkX + 16, branchY + 18);
+    ctx.moveTo(startX, startY);
     ctx.quadraticCurveTo(branchMidX, branchMidY, branchEndX, branchY);
-    ctx.strokeStyle = '#48ab2c';
-    ctx.lineWidth = 15;
+    ctx.strokeStyle = '#439e2d';
+    ctx.lineWidth = 12;
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // Top Glossy highlight line
+    // Top Gloss line on branch
     ctx.beginPath();
-    ctx.moveTo(trunkX + 16, branchY + 16);
+    ctx.moveTo(startX, startY - 2);
     ctx.quadraticCurveTo(branchMidX, branchMidY - 3, branchEndX, branchY - 2);
-    ctx.strokeStyle = 'rgba(180, 255, 120, 0.55)';
-    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(210, 255, 140, 0.6)';
+    ctx.lineWidth = 3.5;
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // ── Spiraling Tendril / Cute Curly Vine Tip (Tua cuốn xoắn ốc dễ thương)
+    // ── Graceful Spiral Tendril at Branch End (Tua cuốn xoắn ốc tinh tế)
     ctx.beginPath();
-    const curlX = branchEndX - 10;
-    const curlY = branchY + 12;
-    ctx.arc(curlX, curlY, 9, 0, Math.PI * 1.6);
-    ctx.strokeStyle = '#6ecb3b';
-    ctx.lineWidth = 3.5;
+    const curlX = branchEndX - 8;
+    const curlY = branchY + 10;
+    ctx.arc(curlX, curlY, 8, 0, Math.PI * 1.5);
+    ctx.strokeStyle = '#68c545';
+    ctx.lineWidth = 2.8;
     ctx.stroke();
 
-    // ── Hanging Plump Bean Pod (Quả đậu thần mập mạp treo đung đưa)
-    const podTime = frameCount * 0.04 + t * 2;
-    const podSwing = Math.sin(podTime) * 0.15;
-    const podX = branchMidX + 10;
-    const podY = branchMidY + 18;
-
-    ctx.save();
-    ctx.translate(podX, podY);
-    ctx.rotate(podSwing);
-
-    // Pod stem
-    ctx.strokeStyle = '#327e1f';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(0, -6);
-    ctx.lineTo(0, 4);
-    ctx.stroke();
-
-    // Big Chubby Bean Pod Body (Vỏ đậu mập tròn 3 khúc)
-    const podGrd = ctx.createLinearGradient(-10, 0, 10, 24);
-    podGrd.addColorStop(0, '#9ef01a');
-    podGrd.addColorStop(0.5, '#70e000');
-    podGrd.addColorStop(1, '#38b000');
-
-    ctx.fillStyle = podGrd;
-    ctx.beginPath();
-    // 3 round plump bumps of the bean pod
-    ctx.ellipse(0, 8, 9, 7, 0.2, 0, Math.PI * 2);
-    ctx.ellipse(2, 18, 10, 8, -0.1, 0, Math.PI * 2);
-    ctx.ellipse(1, 28, 8, 6, 0.15, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#2d6a4f';
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-
-    // Shiny glow dot on bean pod
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(-2, 16, 2.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // ── Giant Plump Leaves (Lá đậu to tròn múp míp)
+    // ── Big Beautiful Heart-Shaped Fairy Leaves (Lá đậu thần to xanh mướt, sắc nét)
     [-1, 1].forEach((side, lIdx) => {
-      const lx = trunkX + side * 36;
-      const ly = branchY - 14 + lIdx * 6;
-      const tilt = side * 0.55 + Math.sin(frameCount * 0.012 + t + lIdx) * 0.18;
+      const lx = nearestMid.x + side * (nearestMid.w * 0.65 + 10);
+      const ly = branchY - 16 + lIdx * 10;
+      const tilt = side * 0.6 + Math.sin(frameCount * 0.012 + t + lIdx) * 0.15;
 
       ctx.save();
       ctx.translate(lx, ly);
       ctx.rotate(tilt);
 
       // Leaf shadow
-      ctx.fillStyle = 'rgba(15, 50, 15, 0.25)';
+      ctx.fillStyle = 'rgba(10, 40, 10, 0.22)';
       ctx.beginPath();
-      ctx.ellipse(2, 2, 18, 28, 0, 0, Math.PI * 2);
+      ctx.ellipse(3, 3, 16, 26, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Plump Juicy Rounded Leaf Body
-      const lgrd = ctx.createRadialGradient(-4, -10, 2, 0, 0, 32);
+      // Lush Leaf Body
+      const lgrd = ctx.createRadialGradient(-4, -8, 2, 0, 0, 28);
       lgrd.addColorStop(0, '#a7f3d0');
       lgrd.addColorStop(0.3, '#34d399');
       lgrd.addColorStop(0.7, '#059669');
@@ -784,48 +787,70 @@ function drawBeanstalk(W, H) {
 
       ctx.fillStyle = lgrd;
       ctx.beginPath();
-      ctx.ellipse(0, -6, 18, 28, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, -6, 16, 26, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#047857';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+
+      // Delicate Leaf Veins
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(0, 16);
+      ctx.lineTo(0, -28);
       ctx.stroke();
 
-      // Main Vein & Side Veins
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.0;
       ctx.beginPath();
-      ctx.moveTo(0, 18);
-      ctx.lineTo(0, -30);
+      ctx.moveTo(0, 6);   ctx.lineTo(side * 9, -2);
+      ctx.moveTo(0, -5);  ctx.lineTo(side * 10, -12);
+      ctx.moveTo(0, -16); ctx.lineTo(side * 8, -22);
       ctx.stroke();
 
-      ctx.lineWidth = 1.2;
+      // Dewdrop sparkle
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
       ctx.beginPath();
-      ctx.moveTo(0, 6);   ctx.lineTo(side * 10, -2);
-      ctx.moveTo(0, -6);  ctx.lineTo(side * 11, -14);
-      ctx.moveTo(0, -18); ctx.lineTo(side * 9, -24);
-      ctx.stroke();
-
-      // Morning Dew Drop (Giọt sương mai long lanh trên lá)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      ctx.beginPath();
-      ctx.arc(side * 6, -8, 2.5, 0, Math.PI * 2);
+      ctx.arc(side * 5, -8, 2.2, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.restore();
     });
   }
 
-  // ── 4. Giant Roots at Bottom (Gốc rễ to mập cắm sâu vào đất trời)
+  // ── 5. Strong Ancient Roots at Base (Bộ rễ cổ thụ xòe rộng nâng thân cây)
   for (let r = -3; r <= 3; r++) {
-    const rx = trunkX + r * 16;
-    const ry = groundY - 4;
+    const rx = trunkX + r * 14;
+    const ry = groundY - 2;
     ctx.beginPath();
     ctx.moveTo(rx, ry);
-    ctx.quadraticCurveTo(rx + r * 30, ry + 25, rx + r * 48, ry + 16);
-    ctx.strokeStyle = '#1b4d1a';
-    ctx.lineWidth = Math.max(3, 10 - Math.abs(r) * 2);
+    ctx.quadraticCurveTo(rx + r * 28, ry + 22, rx + r * 46, ry + 14);
+    ctx.strokeStyle = '#153e18';
+    ctx.lineWidth = Math.max(3, 9 - Math.abs(r) * 2);
     ctx.lineCap = 'round';
     ctx.stroke();
+  }
+
+  // ── 6. Magical Fireflies Floating along Beanstalk (Đom đóm thần tiên bay lượn)
+  for (let f = 0; f < 4; f++) {
+    const fPhase = frameCount * 0.02 + f * 1.6;
+    const fNorm = (fPhase % 1);
+    const fIdx = Math.floor(fNorm * steps);
+    const pt = midPts[Math.min(fIdx, midPts.length - 1)];
+    if (pt) {
+      const fx = pt.x + Math.sin(fPhase * 3) * (pt.w * 0.65);
+      const fy = pt.y + Math.cos(fPhase * 2) * 8;
+      const fAlpha = Math.sin(fNorm * Math.PI);
+      ctx.save();
+      ctx.globalAlpha = fAlpha * 0.85;
+      ctx.fillStyle = '#a7f3d0';
+      ctx.shadowColor = '#34d399';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(fx, fy, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   ctx.restore();
