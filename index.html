@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌸 Khu Vườn Trên Mây</title>
+  <meta name="description" content="Trò chơi quản lý khu vườn kỳ ảo trên những đám mây – trồng cây, tưới nước, thu hoạch và khám phá phép màu!" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --sky1: #1a0533; --sky2: #3b0f6e; --sky3: #7b3fa8; --sky4: #e8a0d8; --sky5: #ffd6b0;
+      --gold: #ffd700; --sun: #ffe566; --cloud: rgba(255,255,255,0.92);
+      --leaf: #5dbf4e; --flower: #ff6eb4; --water: #74d7ff;
+      --ui-bg: rgba(20,5,40,0.72); --ui-border: rgba(255,200,255,0.25);
+      --text: #fff5ff; --accent: #c77dff;
+    }
+    body {
+      font-family: 'Quicksand', sans-serif;
+      overflow: hidden; user-select: none;
+      width: 100vw; height: 100vh;
+      background: linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 30%, var(--sky3) 60%, var(--sky4) 85%, var(--sky5) 100%);
+    }
+    .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .screen.hidden { display: none; }
+    #gameCanvas { position: fixed; inset: 0; width: 100%; height: 100%; cursor: none; }
+
+    /* TITLE */
+    #titleScreen {
+      background: linear-gradient(160deg, #0d0020 0%, #2e0857 40%, #6b2a9e 70%, #d090e0 100%);
+      z-index: 100;
+    }
+    .title-bg-stars { position: absolute; inset: 0; pointer-events: none; }
+    .title-content { position: relative; text-align: center; z-index: 2; }
+    .title-emoji { font-size: clamp(60px,10vw,120px); animation: float 3s ease-in-out infinite; display: block; margin-bottom: 8px; }
+    .title-main {
+      font-family: 'Pacifico', cursive; font-size: clamp(32px,6vw,80px);
+      background: linear-gradient(135deg, #ffd700, #ff9ff3, #a29bfe, #ffd700);
+      background-size: 300% 300%;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      animation: shimmer 3s ease infinite; line-height: 1.1; margin-bottom: 6px;
+    }
+    .title-sub { font-size: clamp(14px,2.5vw,22px); color: #e8d5ff; letter-spacing: 3px; font-weight: 500; margin-bottom: 40px; opacity: 0.85; }
+    .title-desc { font-size: clamp(13px,1.8vw,17px); color: #cbb8ff; max-width: 480px; line-height: 1.7; margin: 0 auto 44px; opacity: 0.9; }
+    .btn-primary {
+      padding: 16px 52px; border: none; border-radius: 50px;
+      font-family: 'Quicksand', sans-serif; font-size: clamp(16px,2.5vw,22px); font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(135deg, #c77dff, #e040fb, #ffd700); background-size: 200% 200%;
+      color: #1a0533; letter-spacing: 1px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 30px rgba(199,125,255,0.7), 0 6px 24px rgba(0,0,0,0.4);
+      animation: btn-pulse 2s ease-in-out infinite;
+    }
+    .btn-primary:hover { transform: scale(1.07); box-shadow: 0 0 50px rgba(199,125,255,0.9), 0 8px 32px rgba(0,0,0,0.5); }
+    .btn-primary:active { transform: scale(0.97); }
+
+    /* HUD */
+    #hud {
+      position: fixed; top: 0; left: 0; right: 0; padding: 12px 20px;
+      display: flex; align-items: center; gap: 14px;
+      background: linear-gradient(180deg, rgba(10,0,30,0.85) 0%, transparent 100%);
+      z-index: 50; pointer-events: none;
+    }
+    .hud-logo { font-family: 'Pacifico', cursive; font-size: 18px; background: linear-gradient(135deg, #ffd700, #ff9ff3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-right: 6px; }
+    .hud-stat { display: flex; align-items: center; gap: 6px; background: var(--ui-bg); border: 1px solid var(--ui-border); border-radius: 20px; padding: 5px 14px; font-size: 14px; font-weight: 600; color: var(--text); pointer-events: none; }
+    .hud-stat span.icon { font-size: 18px; }
+    .hud-stat .val { color: var(--gold); min-width: 36px; text-align: right; }
+    .hud-stat .lbl { color: rgba(255,255,255,0.5); font-size: 11px; margin-left: 2px; }
+    .hud-right { margin-left: auto; display: flex; gap: 8px; pointer-events: all; }
+    .hud-btn { background: var(--ui-bg); border: 1px solid var(--ui-border); border-radius: 12px; padding: 6px 14px; color: var(--text); font-family: 'Quicksand',sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.15s; }
+    .hud-btn:hover { background: rgba(199,125,255,0.3); transform: scale(1.05); }
+
+    /* TOOLBAR */
+    #toolbar {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 10px; align-items: center;
+      background: rgba(10,0,30,0.8); border: 1px solid var(--ui-border); border-radius: 24px;
+      padding: 10px 16px; z-index: 50; backdrop-filter: blur(12px);
+      box-shadow: 0 0 40px rgba(199,125,255,0.25), 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .tool-btn {
+      width: 58px; height: 58px; border-radius: 16px; border: 2px solid transparent;
+      background: rgba(255,255,255,0.07);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; position: relative; font-size: 26px;
+    }
+    .tool-btn .tool-label { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.55); margin-top: 1px; font-family: 'Quicksand',sans-serif; line-height: 1; }
+    .tool-btn:hover { background: rgba(199,125,255,0.2); transform: translateY(-3px); }
+    .tool-btn.active { border-color: var(--accent); background: rgba(199,125,255,0.25); box-shadow: 0 0 18px rgba(199,125,255,0.55); }
+    .tool-btn .cost-badge { position: absolute; top: -6px; right: -6px; background: var(--gold); color: #1a0533; font-size: 9px; font-weight: 700; border-radius: 10px; padding: 1px 5px; font-family: 'Quicksand',sans-serif; }
+    .tool-separator { width: 1px; height: 44px; background: var(--ui-border); margin: 0 4px; }
+
+    /* SHOP */
+    #shopPanel {
+      position: fixed; right: 20px; top: 80px; bottom: 90px; width: 200px;
+      background: rgba(10,0,30,0.85); border: 1px solid var(--ui-border); border-radius: 20px;
+      padding: 14px 12px; z-index: 50; backdrop-filter: blur(14px);
+      box-shadow: 0 0 30px rgba(199,125,255,0.2); overflow-y: auto; display: none;
+    }
+    #shopPanel.open { display: block; }
+    .shop-title { font-size: 14px; font-weight: 700; color: var(--accent); margin-bottom: 12px; text-align: center; letter-spacing: 1px; }
+    .shop-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+    .shop-item:hover { background: rgba(199,125,255,0.2); border-color: var(--accent); transform: translateX(-3px); }
+    .shop-item .item-icon { font-size: 28px; }
+    .shop-item .item-info { flex: 1; }
+    .shop-item .item-name { font-size: 12px; font-weight: 700; color: var(--text); }
+    .shop-item .item-desc { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 1px; }
+    .shop-item .item-cost { font-size: 12px; font-weight: 700; color: var(--gold); white-space: nowrap; }
+
+    /* INFO PANEL */
+    #infoPanel {
+      position: fixed; left: 20px; top: 80px; width: 200px;
+      background: rgba(10,0,30,0.82); border: 1px solid var(--ui-border); border-radius: 20px;
+      padding: 14px 14px; z-index: 50; backdrop-filter: blur(14px);
+      box-shadow: 0 0 24px rgba(199,125,255,0.15); font-size: 12px; color: rgba(255,255,255,0.7); line-height: 1.7;
+    }
+    #infoPanel h3 { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+    #infoPanel .tip { color: rgba(255,220,255,0.65); font-size: 11px; margin-top: 6px; border-top: 1px solid var(--ui-border); padding-top: 6px; }
+
+    /* TOAST */
+    #toast {
+      position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-20px);
+      background: rgba(30,0,60,0.9); border: 1px solid var(--accent); border-radius: 30px;
+      padding: 10px 24px; color: var(--text); font-size: 14px; font-weight: 600;
+      z-index: 200; pointer-events: none; opacity: 0; transition: opacity 0.3s, transform 0.3s;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* GAMEOVER */
+    #gameOverScreen { background: rgba(10,0,30,0.92); z-index: 150; backdrop-filter: blur(10px); }
+    .gameover-box { background: rgba(30,5,60,0.95); border: 1px solid var(--ui-border); border-radius: 28px; padding: 50px 60px; text-align: center; box-shadow: 0 0 80px rgba(199,125,255,0.3); max-width: 420px; }
+    .gameover-emoji { font-size: 72px; display: block; margin-bottom: 16px; }
+    .gameover-title { font-family: 'Pacifico',cursive; font-size: 36px; color: var(--accent); margin-bottom: 10px; }
+    .gameover-score { font-size: 52px; font-weight: 700; color: var(--gold); margin-bottom: 6px; }
+    .gameover-sub { font-size: 16px; color: rgba(255,255,255,0.6); margin-bottom: 36px; }
+    .btn-secondary { padding: 12px 36px; border: 2px solid var(--accent); border-radius: 50px; background: transparent; color: var(--accent); font-family: 'Quicksand',sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin: 6px; }
+    .btn-secondary:hover { background: rgba(199,125,255,0.2); transform: scale(1.05); }
+
+    @keyframes float { 0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)} }
+    @keyframes shimmer { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
+    @keyframes btn-pulse { 0%,100%{box-shadow:0 0 30px rgba(199,125,255,0.7),0 6px 24px rgba(0,0,0,0.4)}50%{box-shadow:0 0 55px rgba(199,125,255,0.95),0 8px 32px rgba(0,0,0,0.5)} }
+
+    #shopPanel::-webkit-scrollbar { width: 4px; }
+    #shopPanel::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+    #shopPanel::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+<body>
+
+<div id="titleScreen" class="screen">
+  <canvas class="title-bg-stars" id="starsCanvas"></canvas>
+  <div class="title-content">
+    <span class="title-emoji">🌸</span>
+    <h1 class="title-main">Khu Vườn Trên Mây</h1>
+    <p class="title-sub">✨ SKY GARDEN ✨</p>
+    <p class="title-desc">Trồng cây huyền bí, tưới nước phép thuật và thu hoạch những bông hoa kỳ diệu trên những đám mây thiên đường!</p>
+    <button class="btn-primary" onclick="startGame()">🌱 Bắt Đầu Chơi</button>
+  </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="hud" style="display:none">
+  <span class="hud-logo">🌸 Mây</span>
+  <div class="hud-stat"><span class="icon">⭐</span><span class="val" id="hudScore">0</span><span class="lbl">điểm</span></div>
+  <div class="hud-stat"><span class="icon">💰</span><span class="val" id="hudCoins">50</span><span class="lbl">xu</span></div>
+  <div class="hud-stat"><span class="icon">💧</span><span class="val" id="hudWater">20</span><span class="lbl">nước</span></div>
+  <div class="hud-stat"><span class="icon">☀️</span><span class="val" id="hudSun">10</span><span class="lbl">ánh sáng</span></div>
+  <div class="hud-stat"><span class="icon">🌱</span><span class="val" id="hudPlants">0</span><span class="lbl">cây</span></div>
+  <div class="hud-right">
+    <button class="hud-btn" onclick="toggleShop()">🛍️ Cửa hàng</button>
+    <button class="hud-btn" onclick="showTitle()">🏠 Menu</button>
+  </div>
+</div>
+
+<div id="toolbar" style="display:none">
+  <button class="tool-btn active" id="tool-plant" onclick="selectTool('plant')">🌱<span class="tool-label">Trồng</span><span class="cost-badge">5xu</span></button>
+  <button class="tool-btn" id="tool-water" onclick="selectTool('water')">💧<span class="tool-label">Tưới</span></button>
+  <button class="tool-btn" id="tool-harvest" onclick="selectTool('harvest')">🧺<span class="tool-label">Thu hoạch</span></button>
+  <button class="tool-btn" id="tool-fertilize" onclick="selectTool('fertilize')">✨<span class="tool-label">Phân bón</span><span class="cost-badge">8xu</span></button>
+  <div class="tool-separator"></div>
+  <button class="tool-btn" id="tool-remove" onclick="selectTool('remove')">🪓<span class="tool-label">Xóa</span></button>
+</div>
+
+<div id="shopPanel">
+  <div class="shop-title">🛍️ CỬA HÀNG</div>
+  <div id="shopItems"></div>
+</div>
+
+<div id="infoPanel" style="display:none">
+  <h3>📖 Hướng Dẫn</h3>
+  <div id="infoPanelContent">
+    Click vào ô đất trên mây để trồng cây.<br>Tưới nước giúp cây lớn nhanh hơn.<br>Thu hoạch khi hoa nở để nhận xu &amp; điểm!
+    <div class="tip">💡 Dùng phân bón để cây lớn 3× nhanh!</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="gameOverScreen" class="screen hidden">
+  <div class="gameover-box">
+    <span class="gameover-emoji">🌺</span>
+    <div class="gameover-title">Tuyệt Vời!</div>
+    <div class="gameover-score" id="finalScore">0</div>
+    <div class="gameover-sub">điểm • <span id="finalPlants">0</span> cây đã trồng</div>
+    <button class="btn-primary" onclick="restartGame()" style="margin-bottom:12px">🌱 Chơi Lại</button><br>
+    <button class="btn-secondary" onclick="showTitle()">🏠 Menu</button>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+//  KHU VƯỜN TRÊN MÂY  ·  GAME ENGINE
+// =====================================================================
+
+const CFG = {
+  CELL_W: 90, CELL_H: 80,
+  GROW_TICK: 60,
+  WATER_BONUS: 2,
+  FERTILIZE_BONUS: 3,
+  RAIN_INTERVAL: 1800,
+  SUN_INTERVAL: 900,
+  BONUS_INTERVAL: 3600,
+};
+
+const PLANTS = {
+  rose:     { name:'Hoa Hồng',    icon:'🌹', stages:['🌱','🌿','🌸','🌹'], grow:120, reward:{ coins:15, score:30 }, cost:5,  color:'#ff6eb4', desc:'Hoa đẹp nhất vườn' },
+  sunflower:{ name:'Hướng Dương', icon:'🌻', stages:['🌱','🌿','🌼','🌻'], grow:150, reward:{ coins:20, score:40 }, cost:7,  color:'#ffe566', desc:'Luôn hướng về mặt trời' },
+  tulip:    { name:'Hoa Tulip',   icon:'🌷', stages:['🌱','🌿','🌼','🌷'], grow:100, reward:{ coins:12, score:25 }, cost:5,  color:'#ff8fa3', desc:'Mềm mại và thanh lịch' },
+  cherry:   { name:'Hoa Anh Đào', icon:'🌸', stages:['🌱','🌿','🌸','🌸'], grow:200, reward:{ coins:35, score:70 }, cost:12, color:'#ffb3c6', desc:'Cực hiếm, cực đẹp' },
+  cactus:   { name:'Xương Rồng',  icon:'🌵', stages:['🌱','🌱','🌿','🌵'], grow:80,  reward:{ coins:10, score:18 }, cost:4,  color:'#5dbf4e', desc:'Sống khỏe, ít cần nước' },
+  mushroom: { name:'Nấm Phép',    icon:'🍄', stages:['🌱','🌿','🍄','🍄'], grow:90,  reward:{ coins:18, score:35 }, cost:6,  color:'#e08080', desc:'Nở về đêm, đầy bí ẩn' },
+  bamboo:   { name:'Trúc Mây',    icon:'🎋', stages:['🌱','🎍','🎋','🎋'], grow:110, reward:{ coins:25, score:50 }, cost:9,  color:'#4db85c', desc:'Vươn cao tận trời xanh' },
+  lotus:    { name:'Sen Vàng',    icon:'🪷', stages:['🌱','🌿','🌺','🪷'], grow:180, reward:{ coins:40, score:80 }, cost:15, color:'#d4a0f0', desc:'Linh thiêng và quý hiếm' },
+};
+
+let G = {};
+let canvas, ctx;
+let animFrame;
+let frameCount = 0;
+let particles = [];
+let floatingTexts = [];
+let clouds = [];
+let bgStarsData = null;
+let decorCloudsData = null;
+let currentTool = 'plant';
+let currentPlantType = 'rose';
+let shopOpen = false;
+let mouse = { x: 0, y: 0 };
+let cursor = { x: -200, y: -200 };
+let bgImage = null;
+
+function resetState() {
+  G = { coins: 50, water: 20, sun: 10, score: 0, totalPlants: 0, plots: [], running: false };
+  particles = []; floatingTexts = []; frameCount = 0;
+}
+
+function loadBgImage() {
+  if (bgImage) return;
+  bgImage = new Image();
+  bgImage.src = 'bg.jpg';
+}
+
+// =====================================================================
+//  INIT
+// =====================================================================
+window.addEventListener('DOMContentLoaded', () => {
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d');
+  resizeCanvas();
+  loadBgImage();
+  window.addEventListener('resize', () => { resizeCanvas(); bgStarsData = null; decorCloudsData = null; });
+  initTitleStars();
+  canvas.addEventListener('mousemove', e => {
+    const r = canvas.getBoundingClientRect();
+    cursor.x = e.clientX - r.left; cursor.y = e.clientY - r.top;
+    mouse.x = cursor.x; mouse.y = cursor.y;
+  });
+  canvas.addEventListener('click', onCanvasClick);
+  canvas.addEventListener('mouseleave', () => { cursor.x = -200; cursor.y = -200; });
+  populateShop();
+});
+
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+
+// =====================================================================
+//  TITLE STARS
+// =====================================================================
+function initTitleStars() {
+  const sc = document.getElementById('starsCanvas');
+  sc.width = window.innerWidth; sc.height = window.innerHeight;
+  const sctx = sc.getContext('2d');
+  const s = [];
+  for (let i = 0; i < 200; i++) {
+    s.push({ x: Math.random()*sc.width, y: Math.random()*sc.height, r: Math.random()*2.2+0.4, a: Math.random(), sp: Math.random()*0.02+0.005 });
+  }
+  (function drawStars() {
+    sctx.clearRect(0,0,sc.width,sc.height);
+    s.forEach(st => {
+      st.a += st.sp;
+      const alpha = 0.3 + 0.7*Math.abs(Math.sin(st.a));
+      sctx.beginPath(); sctx.arc(st.x, st.y, st.r, 0, Math.PI*2);
+      sctx.fillStyle = `rgba(255,240,255,${alpha})`; sctx.fill();
+    });
+    requestAnimationFrame(drawStars);
+  })();
+}
+
+// =====================================================================
+//  GAME LIFECYCLE
+// =====================================================================
+function startGame() {
+  document.getElementById('titleScreen').classList.add('hidden');
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  document.getElementById('hud').style.display = 'flex';
+  document.getElementById('toolbar').style.display = 'flex';
+  document.getElementById('infoPanel').style.display = 'block';
+  resetState();
+  G.running = true;
+  bgStarsData = null; decorCloudsData = null;
+  initClouds(); initPlots();
+  selectTool('plant');
+  if (animFrame) cancelAnimationFrame(animFrame);
+  gameLoop(); updateHUD();
+}
+
+function restartGame() { document.getElementById('gameOverScreen').classList.add('hidden'); startGame(); }
+
+function showTitle() {
+  G.running = false;
+  if (animFrame) cancelAnimationFrame(animFrame);
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('infoPanel').style.display = 'none';
+  document.getElementById('shopPanel').classList.remove('open');
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  document.getElementById('titleScreen').classList.remove('hidden');
+  shopOpen = false;
+}
+
+// =====================================================================
+//  CLOUDS & PLOTS
+// =====================================================================
+function initClouds() {
+  clouds = [];
+  const cw = canvas.width, ch = canvas.height;
+  [
+    { cx: cw*0.22, cy: ch*0.38, cols: 3, rows: 2 },
+    { cx: cw*0.72, cy: ch*0.30, cols: 3, rows: 2 },
+    { cx: cw*0.50, cy: ch*0.58, cols: 4, rows: 2 },
+    { cx: cw*0.15, cy: ch*0.66, cols: 2, rows: 2 },
+    { cx: cw*0.84, cy: ch*0.62, cols: 2, rows: 2 },
+  ].forEach((l, i) => {
+    clouds.push({ id:i, cx:l.cx, cy:l.cy, cols:l.cols, rows:l.rows, bobOffset:Math.random()*Math.PI*2, bobSpeed:0.3+Math.random()*0.2, bobAmp:6+Math.random()*6 });
+  });
+}
+
+function initPlots() {
+  G.plots = [];
+  clouds.forEach((c, ci) => {
+    for (let r = 0; r < c.rows; r++) {
+      for (let col = 0; col < c.cols; col++) {
+        G.plots.push({ cloudIdx:ci, col, row:r, plant:null, id:G.plots.length });
+      }
+    }
+  });
+}
+
+function getCloudPos(c, t) {
+  return { x: c.cx, y: c.cy + Math.sin(t * c.bobSpeed * 0.01 + c.bobOffset) * c.bobAmp };
+}
+
+function getPlotWorld(plot, t) {
+  const c = clouds[plot.cloudIdx];
+  const pos = getCloudPos(c, t);
+  const gw = c.cols * CFG.CELL_W, gh = c.rows * CFG.CELL_H;
+  return {
+    x: pos.x - gw/2 + plot.col * CFG.CELL_W + CFG.CELL_W/2,
+    y: pos.y - gh/2 + plot.row * CFG.CELL_H + CFG.CELL_H/2,
+  };
+}
+
+// =====================================================================
+//  GAME LOOP
+// =====================================================================
+function gameLoop() {
+  if (!G.running) return;
+  frameCount++;
+
+  if (frameCount % CFG.RAIN_INTERVAL === 0) {
+    const b = 5 + Math.floor(Math.random()*6);
+    G.water = Math.min(G.water + b, 99);
+    showToast(`🌧️ Mưa phép thuật! +${b} nước`);
+    spawnRainParticles(); updateHUD();
+  }
+  if (frameCount % CFG.SUN_INTERVAL === 0) {
+    const b = 3 + Math.floor(Math.random()*4);
+    G.sun = Math.min(G.sun + b, 99);
+    spawnSunParticles(); updateHUD();
+  }
+  if (frameCount % CFG.BONUS_INTERVAL === 0) {
+    const b = 10 + Math.floor(Math.random()*16);
+    G.coins += b;
+    showToast(`✨ Phép màu! +${b} xu`); updateHUD();
+  }
+
+  if (frameCount % CFG.GROW_TICK === 0) {
+    G.plots.forEach(p => {
+      if (!p.plant || p.plant.stage >= 3 || p.plant.readyToHarvest) return;
+      p.plant.growTimer++;
+      const needed = Math.ceil(PLANTS[p.plant.type].grow / (p.plant.fertilized ? CFG.FERTILIZE_BONUS : 1) / (p.plant.watered ? CFG.WATER_BONUS : 1));
+      if (p.plant.growTimer >= needed) {
+        p.plant.growTimer = 0; p.plant.stage++;
+        p.plant.watered = false;
+        if (p.plant.stage >= 3) {
+          p.plant.readyToHarvest = true;
+          spawnGlowAt(getPlotWorld(p, frameCount));
+        }
+      }
+    });
+  }
+
+  draw();
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+// =====================================================================
+//  DRAW
+// =====================================================================
+function draw() {
+  const W = canvas.width, H = canvas.height;
+
+  // ——— Background image
+  if (bgImage && bgImage.complete && bgImage.naturalWidth > 0) {
+    ctx.drawImage(bgImage, 0, 0, W, H);
+    // Overlay dark gradient so game elements stay readable
+    const overlay = ctx.createLinearGradient(0, 0, 0, H);
+    overlay.addColorStop(0,   'rgba(8,0,22,0.52)');
+    overlay.addColorStop(0.4, 'rgba(30,5,65,0.35)');
+    overlay.addColorStop(0.75,'rgba(60,20,80,0.18)');
+    overlay.addColorStop(1,   'rgba(20,10,5,0.28)');
+    ctx.fillStyle = overlay; ctx.fillRect(0, 0, W, H);
+  } else {
+    // Fallback gradient while image loads
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0,   '#0d0028');
+    sky.addColorStop(0.25,'#2a0855');
+    sky.addColorStop(0.55,'#6b2a9e');
+    sky.addColorStop(0.80,'#d090e0');
+    sky.addColorStop(1,   '#ffd6b0');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+  }
+
+  drawBgStars(W, H);
+  drawSun(W, H);
+  drawDecorClouds(W, H);
+
+  clouds.forEach((c, ci) => {
+    const pos = getCloudPos(c, frameCount);
+    drawCloudPlatform(c, pos, ci);
+  });
+
+  updateParticles();
+  updateFloatingTexts();
+  drawCursor();
+}
+
+function drawBgStars(W, H) {
+  if (!bgStarsData) {
+    bgStarsData = [];
+    for (let i = 0; i < 130; i++) {
+      bgStarsData.push({ x:Math.random()*W, y:Math.random()*H*0.65, r:Math.random()*1.8+0.3, ph:Math.random()*Math.PI*2, sp:Math.random()*0.04+0.01 });
+    }
+  }
+  bgStarsData.forEach(s => {
+    const a = 0.25 + 0.6*Math.abs(Math.sin(frameCount*s.sp + s.ph));
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,240,255,${a})`; ctx.fill();
+  });
+}
+
+function drawSun(W, H) {
+  const sx = W*0.82, sy = H*0.11;
+  ctx.save(); ctx.translate(sx, sy); ctx.rotate(frameCount * 0.003);
+  for (let i = 0; i < 12; i++) {
+    const angle = (i/12)*Math.PI*2;
+    const len = 55 + 20*Math.sin(frameCount*0.05 + i);
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(angle)*28, Math.sin(angle)*28);
+    ctx.lineTo(Math.cos(angle)*len, Math.sin(angle)*len);
+    ctx.strokeStyle = `rgba(255,230,100,${0.18 + 0.1*Math.sin(frameCount*0.05+i)})`;
+    ctx.lineWidth = 3; ctx.stroke();
+  }
+  ctx.restore();
+  const grd = ctx.createRadialGradient(sx, sy, 0, sx, sy, 70);
+  grd.addColorStop(0, 'rgba(255,235,80,0.9)');
+  grd.addColorStop(0.4,'rgba(255,200,60,0.5)');
+  grd.addColorStop(1, 'rgba(255,200,60,0)');
+  ctx.beginPath(); ctx.arc(sx, sy, 70, 0, Math.PI*2); ctx.fillStyle = grd; ctx.fill();
+  ctx.beginPath(); ctx.arc(sx, sy, 22, 0, Math.PI*2); ctx.fillStyle = '#ffe566'; ctx.fill();
+  ctx.beginPath(); ctx.arc(sx, sy, 16, 0, Math.PI*2); ctx.fillStyle = '#fff4a0'; ctx.fill();
+}
+
+function drawDecorClouds(W, H) {
+  if (!decorCloudsData) {
+    decorCloudsData = [
+      {x:W*0.05, y:H*0.12, s:1.2, sp:0.15, off:0},
+      {x:W*0.35, y:H*0.06, s:0.8, sp:0.18, off:100},
+      {x:W*0.55, y:H*0.15, s:1.0, sp:0.14, off:200},
+      {x:W*0.75, y:H*0.09, s:0.7, sp:0.22, off:300},
+      {x:W*0.92, y:H*0.18, s:0.9, sp:0.16, off:400},
+    ];
+  }
+  decorCloudsData.forEach(dc => {
+    const bob = Math.sin((frameCount + dc.off) * dc.sp * 0.02) * 4;
+    ctx.save();
+    ctx.globalAlpha = 0.38;
+    drawCloudShape(dc.x, dc.y + bob, 60*dc.s, 22*dc.s);
+    ctx.restore();
+  });
+}
+
+function drawCloudShape(x, y, w, h) {
+  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  ctx.beginPath(); ctx.ellipse(x, y, w, h, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x - w*0.35, y + h*0.1, w*0.55, h*0.75, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x + w*0.35, y + h*0.1, w*0.55, h*0.75, 0, 0, Math.PI*2); ctx.fill();
+}
+
+function drawCloudPlatform(c, pos, ci) {
+  const gw = c.cols * CFG.CELL_W, gh = c.rows * CFG.CELL_H;
+  const x = pos.x - gw/2, y = pos.y - gh/2;
+  const cloudY = y + gh;
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(200,150,255,0.35)'; ctx.shadowBlur = 22;
+  const blobW = CFG.CELL_W * 0.55;
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  for (let i = 0; i <= c.cols; i++) {
+    const bx = x + i * CFG.CELL_W - CFG.CELL_W*0.1;
+    ctx.beginPath(); ctx.ellipse(bx, cloudY + 14, blobW*0.5, 28, 0, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(245,240,255,0.96)';
+  ctx.fillRect(x - 10, y, gw + 20, gh + 16);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(220,200,255,0.3)'; ctx.fillRect(x - 10, y, gw + 20, 4);
+
+  G.plots.filter(p => p.cloudIdx === ci).forEach(plot => {
+    const pw = getPlotWorld(plot, frameCount);
+    const px = pw.x - CFG.CELL_W/2 + 4, py = pw.y - CFG.CELL_H/2 + 4;
+    const pw2 = CFG.CELL_W - 8, ph2 = CFG.CELL_H - 8;
+    const isHover = isMouseOverPlot(plot);
+
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(px, py, pw2, ph2, 10);
+    else { ctx.rect(px, py, pw2, ph2); }
+
+    ctx.fillStyle = isHover ? 'rgba(199,125,255,0.25)' : plot.plant ? 'rgba(90,60,30,0.35)' : 'rgba(120,80,40,0.2)';
+    ctx.fill();
+    ctx.strokeStyle = isHover ? 'rgba(199,125,255,0.7)' : 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1.5; ctx.stroke();
+
+    if (plot.plant) {
+      drawPlant(plot, pw.x, pw.y - 8);
+    } else {
+      ctx.globalAlpha = 0.18; ctx.fillStyle = '#c0b090';
+      ctx.beginPath(); ctx.ellipse(pw.x, pw.y + 10, 20, 8, 0, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  });
+}
+
+function drawPlant(plot, x, y) {
+  const pl = plot.plant, def = PLANTS[pl.type];
+  const stage = def.stages[pl.stage];
+
+  if (pl.readyToHarvest) {
+    const t = frameCount * 0.05;
+    const glowR = 28 + 8*Math.sin(t);
+    const grd = ctx.createRadialGradient(x, y, 0, x, y, glowR);
+    grd.addColorStop(0, def.color + '99');
+    grd.addColorStop(1, def.color + '00');
+    ctx.beginPath(); ctx.arc(x, y, glowR, 0, Math.PI*2); ctx.fillStyle = grd; ctx.fill();
+  }
+
+  if (pl.watered) {
+    ctx.fillStyle = 'rgba(116,215,255,0.55)';
+    ctx.beginPath(); ctx.arc(x + 20, y - 20, 5, 0, Math.PI*2); ctx.fill();
+  }
+
+  const bounce = pl.readyToHarvest ? Math.sin(frameCount * 0.08) * 3 : 0;
+  ctx.font = `${26 + pl.stage*4}px serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(stage, x, y + bounce);
+
+  if (!pl.readyToHarvest && pl.stage < 3) {
+    const needed = Math.ceil(PLANTS[pl.type].grow / (pl.fertilized ? CFG.FERTILIZE_BONUS : 1) / (pl.watered ? CFG.WATER_BONUS : 1));
+    const pct = Math.min(pl.growTimer / needed, 1);
+    const bw = 46, bh = 5, bx = x - bw/2, by = y + 24;
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 3); else ctx.rect(bx, by, bw, bh);
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 3); else ctx.rect(bx, by, bw, bh); ctx.fill();
+    ctx.fillStyle = pl.fertilized ? '#e0a0ff' : def.color;
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, bw*pct, bh, 3); else ctx.rect(bx, by, bw*pct, bh); ctx.fill();
+  }
+
+  if (pl.readyToHarvest) {
+    ctx.font = 'bold 9px Quicksand, sans-serif';
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText('THU HOẠCH!', x, y + 30);
+  }
+}
+
+function drawCursor() {
+  if (cursor.x < 0) return;
+  const icons = { plant:'🌱', water:'💧', harvest:'🧺', fertilize:'✨', remove:'🪓' };
+  ctx.font = '24px serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(icons[currentTool] || '👆', cursor.x + 8, cursor.y + 2);
+}
+
+// =====================================================================
+//  INTERACTION
+// =====================================================================
+function isMouseOverPlot(plot) {
+  const pw = getPlotWorld(plot, frameCount);
+  return Math.abs(mouse.x - pw.x) < CFG.CELL_W/2 - 2 && Math.abs(mouse.y - pw.y) < CFG.CELL_H/2 - 2;
+}
+
+function onCanvasClick(e) {
+  if (!G.running) return;
+  const r = canvas.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  for (const plot of G.plots) {
+    const pw = getPlotWorld(plot, frameCount);
+    if (Math.abs(mx - pw.x) < CFG.CELL_W/2 - 2 && Math.abs(my - pw.y) < CFG.CELL_H/2 - 2) {
+      handlePlotClick(plot, pw); return;
+    }
+  }
+}
+
+function handlePlotClick(plot, pw) {
+  if (currentTool === 'plant')     doPlant(plot, pw);
+  else if (currentTool === 'water')     doWater(plot, pw);
+  else if (currentTool === 'harvest')   doHarvest(plot, pw);
+  else if (currentTool === 'fertilize') doFertilize(plot, pw);
+  else if (currentTool === 'remove')    doRemove(plot, pw);
+}
+
+function doPlant(plot, pw) {
+  if (plot.plant) { showToast('⚠️ Ô này đã có cây rồi!'); return; }
+  const def = PLANTS[currentPlantType];
+  if (G.coins < def.cost) { showToast(`❌ Cần ${def.cost} xu! (Có ${G.coins})`); return; }
+  G.coins -= def.cost;
+  plot.plant = { type:currentPlantType, stage:0, growTimer:0, watered:false, fertilized:false, readyToHarvest:false };
+  G.totalPlants++;
+  spawnParticles(pw.x, pw.y, '#5dbf4e', 8);
+  addFloatingText(pw.x, pw.y, `🌱 ${def.name}`, '#a0ffa0');
+  updateHUD();
+}
+
+function doWater(plot, pw) {
+  if (!plot.plant) { showToast('⚠️ Không có cây để tưới!'); return; }
+  if (plot.plant.readyToHarvest) { showToast('🌟 Hãy thu hoạch ngay!'); return; }
+  if (plot.plant.watered) { showToast('💧 Đã tưới rồi!'); return; }
+  if (G.water <= 0) { showToast('❌ Hết nước! Chờ mưa phép thuật~'); return; }
+  G.water--;
+  plot.plant.watered = true;
+  spawnParticles(pw.x, pw.y, '#74d7ff', 10);
+  addFloatingText(pw.x, pw.y, '💧 Tưới!', '#74d7ff');
+  updateHUD();
+}
+
+function doHarvest(plot, pw) {
+  if (!plot.plant) { showToast('⚠️ Không có gì để thu hoạch!'); return; }
+  if (!plot.plant.readyToHarvest) { showToast('⏳ Cây chưa trưởng thành!'); return; }
+  const def = PLANTS[plot.plant.type];
+  G.coins += def.reward.coins; G.score += def.reward.score;
+  spawnParticles(pw.x, pw.y, def.color, 20);
+  spawnStarBurst(pw.x, pw.y);
+  addFloatingText(pw.x, pw.y - 10, `+${def.reward.coins}xu`, '#ffd700');
+  addFloatingText(pw.x, pw.y + 16, `+${def.reward.score}pts`, '#a0ffb0');
+  plot.plant = null;
+  updateHUD();
+}
+
+function doFertilize(plot, pw) {
+  if (!plot.plant) { showToast('⚠️ Không có cây!'); return; }
+  if (plot.plant.fertilized) { showToast('✨ Đã bón phân rồi!'); return; }
+  if (plot.plant.readyToHarvest) { showToast('🌟 Thu hoạch ngay đi!'); return; }
+  if (G.coins < 8) { showToast('❌ Cần 8 xu!'); return; }
+  G.coins -= 8; plot.plant.fertilized = true;
+  spawnParticles(pw.x, pw.y, '#e0a0ff', 12);
+  addFloatingText(pw.x, pw.y, '✨ Phân bón!', '#e0a0ff');
+  updateHUD();
+}
+
+function doRemove(plot, pw) {
+  if (!plot.plant) { showToast('⚠️ Không có cây!'); return; }
+  plot.plant = null;
+  spawnParticles(pw.x, pw.y, '#ff8080', 6);
+  addFloatingText(pw.x, pw.y, 'Đã xóa', '#ff8080');
+  updateHUD();
+}
+
+// =====================================================================
+//  PARTICLES
+// =====================================================================
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random()*Math.PI*2, speed = 1.5 + Math.random()*3;
+    particles.push({ x, y, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed - 2, r:3+Math.random()*4, color, life:1, decay:0.02+Math.random()*0.02, type:'dot' });
+  }
+}
+function spawnStarBurst(x, y) {
+  const emojis = ['⭐','✨','🌟','💫'];
+  for (let i = 0; i < 6; i++) {
+    const angle = (i/6)*Math.PI*2;
+    particles.push({ x, y, vx:Math.cos(angle)*(2+Math.random()*2), vy:Math.sin(angle)*(2+Math.random()*2)-1, emoji:emojis[Math.floor(Math.random()*emojis.length)], life:1, decay:0.025, type:'emoji', size:16+Math.random()*8 });
+  }
+}
+function spawnGlowAt(pw) {
+  for (let i = 0; i < 12; i++) {
+    const angle = Math.random()*Math.PI*2;
+    particles.push({ x:pw.x, y:pw.y, vx:Math.cos(angle)*(1+Math.random()*2), vy:Math.sin(angle)*(1+Math.random()*2)-2, r:4+Math.random()*4, color:'#ffd700', life:1, decay:0.015, type:'dot' });
+  }
+}
+function spawnRainParticles() {
+  const W = canvas.width;
+  for (let i = 0; i < 30; i++) {
+    particles.push({ x:Math.random()*W, y:-10, vx:(Math.random()-0.5)*0.5, vy:4+Math.random()*4, r:2+Math.random()*2, color:'#74d7ff', life:1, decay:0.01, type:'drop' });
+  }
+}
+function spawnSunParticles() {
+  const W = canvas.width;
+  for (let i = 0; i < 15; i++) {
+    particles.push({ x:W*0.82+(Math.random()-0.5)*40, y:canvas.height*0.11+(Math.random()-0.5)*40, vx:(Math.random()-0.5)*4, vy:1+Math.random()*3, r:3+Math.random()*3, color:'#ffe566', life:1, decay:0.008, type:'dot' });
+  }
+}
+function updateParticles() {
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life -= p.decay;
+    ctx.globalAlpha = Math.max(0, p.life);
+    if (p.type === 'emoji') {
+      ctx.font = `${p.size}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(p.emoji, p.x, p.y);
+    } else if (p.type === 'drop') {
+      ctx.fillStyle = p.color; ctx.beginPath();
+      ctx.ellipse(p.x, p.y, p.r*0.5, p.r*1.5, Math.PI*0.1, 0, Math.PI*2); ctx.fill();
+    } else {
+      ctx.fillStyle = p.color; ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r*p.life, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  });
+}
+function addFloatingText(x, y, text, color) {
+  floatingTexts.push({ x, y, vy:-1.5, text, color, life:1, decay:0.018 });
+}
+function updateFloatingTexts() {
+  floatingTexts = floatingTexts.filter(f => f.life > 0);
+  floatingTexts.forEach(f => {
+    f.y += f.vy; f.life -= f.decay;
+    ctx.globalAlpha = Math.max(0, f.life);
+    ctx.font = 'bold 13px Quicksand, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 3;
+    ctx.strokeText(f.text, f.x, f.y);
+    ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y);
+    ctx.globalAlpha = 1;
+  });
+}
+
+// =====================================================================
+//  UI HELPERS
+// =====================================================================
+function selectTool(tool) {
+  currentTool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(`tool-${tool}`);
+  if (btn) btn.classList.add('active');
+  const tips = {
+    plant:    'Click vào ô trống trên mây để trồng cây. Chọn loại cây từ Cửa hàng.',
+    water:    'Click vào cây để tưới nước. Cây được tưới lớn 2× nhanh!',
+    harvest:  'Click vào cây đang nhấp nháy vàng để thu hoạch xu & điểm!',
+    fertilize:'Click vào cây để bón phân (8xu). Cây lớn 3× nhanh!',
+    remove:   'Click vào cây để xóa bỏ khỏi ô đất.',
+  };
+  document.getElementById('infoPanelContent').innerHTML = tips[tool] + '<div class="tip">💡 Nhấn nút Cửa hàng để đổi loại cây!</div>';
+}
+
+function toggleShop() {
+  shopOpen = !shopOpen;
+  document.getElementById('shopPanel').classList.toggle('open', shopOpen);
+}
+
+function populateShop() {
+  const container = document.getElementById('shopItems');
+  container.innerHTML = '';
+  Object.entries(PLANTS).forEach(([key, def]) => {
+    const el = document.createElement('div');
+    el.className = 'shop-item';
+    el.innerHTML = `<span class="item-icon">${def.icon}</span><div class="item-info"><div class="item-name">${def.name}</div><div class="item-desc">${def.desc}</div></div><div class="item-cost">🌱${def.cost}xu</div>`;
+    el.addEventListener('click', () => {
+      currentPlantType = key;
+      selectTool('plant');
+      toggleShop();
+      showToast(`🌱 Đã chọn: ${def.name}`);
+    });
+    container.appendChild(el);
+  });
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+function updateHUD() {
+  document.getElementById('hudScore').textContent   = G.score;
+  document.getElementById('hudCoins').textContent   = G.coins;
+  document.getElementById('hudWater').textContent   = G.water;
+  document.getElementById('hudSun').textContent     = G.sun;
+  document.getElementById('hudPlants').textContent  = G.totalPlants;
+}
+</script>
+</body>
+</html>
