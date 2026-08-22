@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🛠️ Admin — Khu Vườn Trên Mây</title>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0a0020;
+      --card:    rgba(20,4,50,0.92);
+      --border:  rgba(199,125,255,0.22);
+      --accent:  #c77dff;
+      --gold:    #ffd700;
+      --text:    #f0e8ff;
+      --muted:   rgba(200,160,255,0.55);
+      --red:     #ff5e7a;
+      --green:   #50e3a4;
+      --blue:    #60b8ff;
+    }
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background: linear-gradient(160deg, #07001a 0%, #180438 50%, #3a0e6e 100%);
+      min-height: 100vh; color: var(--text); padding: 24px;
+    }
+    /* ── TOP BAR ── */
+    .topbar {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 28px; flex-wrap: wrap;
+    }
+    .topbar h1 {
+      font-family: 'Pacifico', cursive; font-size: 26px;
+      background: linear-gradient(135deg, #ffd700, #ff9ff3, #a29bfe);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      white-space: nowrap;
+    }
+    .topbar .back-btn {
+      padding: 8px 18px; border: 1px solid var(--border); border-radius: 20px;
+      background: rgba(255,255,255,0.05); color: var(--muted);
+      font-family: 'Quicksand',sans-serif; font-size: 13px; font-weight: 600;
+      cursor: pointer; text-decoration: none; transition: all .2s;
+    }
+    .topbar .back-btn:hover { background: rgba(199,125,255,0.15); color: var(--text); }
+    .topbar-right { margin-left: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    /* ── STATS ROW ── */
+    .stats-row { display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat-card {
+      flex: 1; min-width: 130px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 16px 20px; text-align: center;
+      box-shadow: 0 0 20px rgba(199,125,255,0.08);
+    }
+    .stat-card .stat-num  { font-size: 32px; font-weight: 700; color: var(--gold); line-height: 1; }
+    .stat-card .stat-icon { font-size: 22px; margin-bottom: 4px; display: block; }
+    .stat-card .stat-lbl  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* ── SEARCH & FILTER ── */
+    .toolbar-row {
+      display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1; min-width: 180px; padding: 10px 16px;
+      border: 1px solid var(--border); border-radius: 12px;
+      background: rgba(255,255,255,0.06); color: var(--text);
+      font-family: 'Quicksand',sans-serif; font-size: 14px;
+      outline: none; transition: border-color .2s;
+    }
+    .search-input::placeholder { color: var(--muted); }
+    .search-input:focus { border-color: var(--accent); }
+    .filter-select {
+      padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px;
+      background: rgba(255,255,255,0.06); color: var(--text);
+      font-family: 'Quicksand',sans-serif; font-size: 13px; cursor: pointer; outline: none;
+    }
+    .btn {
+      padding: 9px 18px; border-radius: 12px; border: none;
+      font-family: 'Quicksand',sans-serif; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .btn-primary   { background: linear-gradient(135deg, #c77dff, #e040fb); color: #1a0533; }
+    .btn-danger    { background: rgba(255,94,122,0.15); color: var(--red); border: 1px solid rgba(255,94,122,0.3); }
+    .btn-success   { background: rgba(80,227,164,0.15); color: var(--green); border: 1px solid rgba(80,227,164,0.3); }
+    .btn-info      { background: rgba(96,184,255,0.15); color: var(--blue); border: 1px solid rgba(96,184,255,0.3); }
+    .btn-ghost     { background: rgba(255,255,255,0.06); color: var(--muted); border: 1px solid var(--border); }
+    .btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; filter: none; }
+
+    /* ── TABLE & SCROLLABLE CONTAINERS ── */
+    .table-wrap {
+      background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+      overflow-x: auto; overflow-y: auto; max-height: 480px;
+      box-shadow: 0 0 30px rgba(199,125,255,0.08);
+      position: relative; scrollbar-width: thin; scrollbar-color: var(--accent) rgba(0,0,0,0.25);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 13px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: var(--muted); text-align: left;
+      border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;
+      transition: color .15s;
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(26, 6, 48, 0.96); backdrop-filter: blur(10px);
+    }
+    thead th:hover { color: var(--accent); }
+    thead th.sorted { color: var(--accent); }
+    thead th .sort-icon { font-size: 9px; margin-left: 3px; }
+    tbody tr { transition: background .15s; }
+    tbody tr:hover { background: rgba(199,125,255,0.06); }
+    tbody td { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    /* Custom Scrollbars */
+    .table-wrap::-webkit-scrollbar,
+    .save-viewer::-webkit-scrollbar {
+      width: 6px; height: 6px;
+    }
+    .table-wrap::-webkit-scrollbar-track,
+    .save-viewer::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.25); border-radius: 6px;
+    }
+    .table-wrap::-webkit-scrollbar-thumb,
+    .save-viewer::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, var(--accent), #7b2cbf);
+      border-radius: 6px;
+    }
+    .table-wrap::-webkit-scrollbar-thumb:hover,
+    .save-viewer::-webkit-scrollbar-thumb:hover {
+      background: #ffd700;
+    }
+
+    .user-name  { font-weight: 700; color: var(--text); }
+    .user-badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: 700; }
+    .badge-new  { background: rgba(80,227,164,0.15); color: var(--green); border: 1px solid rgba(80,227,164,0.3); }
+    .badge-active { background: rgba(199,125,255,0.18); color: var(--accent); border: 1px solid rgba(199,125,255,0.3); }
+    .badge-top  { background: rgba(255,215,0,0.15); color: var(--gold); border: 1px solid rgba(255,215,0,0.4); }
+    .score-val  { font-weight: 700; color: var(--gold); }
+    .level-val  { font-weight: 700; color: var(--accent); }
+    .date-val   { font-size: 11px; color: var(--muted); }
+    .action-cell { display: flex; gap: 6px; }
+    .btn-sm { padding: 5px 10px; border-radius: 8px; font-size: 11px; }
+
+    /* ── LEADERBOARD ── */
+    .section-title {
+      font-size: 14px; font-weight: 700; color: var(--accent);
+      margin: 28px 0 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::after { content:''; flex:1; height:1px; background: var(--border); }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(6px); z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity .3s;
+    }
+    .modal-overlay.show { opacity: 1; pointer-events: all; }
+    .modal {
+      background: linear-gradient(135deg, rgba(25,5,60,0.98), rgba(50,10,90,0.98));
+      border: 1px solid var(--border); border-radius: 22px;
+      padding: 36px 40px; min-width: 320px; max-width: 480px; width: 90%;
+      box-shadow: 0 0 60px rgba(199,125,255,0.3);
+      animation: popIn .3s cubic-bezier(.175,.885,.32,1.275);
+    }
+    @keyframes popIn { from{opacity:0;transform:scale(.85)} to{opacity:1;transform:scale(1)} }
+    .modal h2 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .modal .modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+    .modal-field { margin-bottom: 14px; }
+    .modal-field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .modal-field input, .modal-field select {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
+      background: rgba(255,255,255,0.07); color: var(--text);
+      font-family: 'Quicksand',sans-serif; font-size: 14px; outline: none;
+    }
+    .modal-field input:focus { border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-actions .btn { flex: 1; }
+
+    /* ── SAVE VIEWER ── */
+    .save-viewer {
+      background: rgba(0,0,0,0.3); border-radius: 10px; padding: 14px;
+      font-size: 11px; color: var(--muted); font-family: monospace;
+      max-height: 200px; overflow-y: auto; margin-top: 12px;
+      border: 1px solid var(--border); white-space: pre-wrap; word-break: break-all;
+    }
+
+    /* ── TOAST ── */
+    #adminToast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: rgba(20,0,50,0.95); border: 1px solid var(--accent); border-radius: 24px;
+      padding: 10px 22px; font-size: 13px; font-weight: 600; color: var(--text);
+      z-index: 300; pointer-events: none; white-space: nowrap;
+      opacity: 0; transition: opacity .25s, transform .25s;
+    }
+    #adminToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty-state .empty-icon { font-size: 48px; display: block; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+
+    /* ── PLANT EDITOR ── */
+    .pe-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+    .pe-hint    { flex:1; font-size:11px; color:var(--muted); }
+    .pe-field   { display:flex; flex-direction:column; gap:3px; }
+    .pe-field label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+    .pe-input-wrap  { display:flex; align-items:center; gap:4px; }
+    .pe-unit   { font-size:14px; flex-shrink:0; }
+    .pe-input  {
+      width:90px; padding:6px 10px;
+      border:1px solid var(--border); border-radius:8px;
+      background:rgba(255,255,255,0.07); color:var(--text);
+      font-family:'Quicksand',sans-serif; font-size:13px; font-weight:700;
+      outline:none; transition:border-color .2s;
+    }
+    .pe-input:focus { border-color:var(--accent); }
+    .plant-row.modified { background:rgba(255,215,0,0.06); }
+    .plant-row.modified td { border-left: 2px solid rgba(255,215,0,0.4); }
+    .plant-name-cell { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .rarity-tag  { font-size:10px; padding:1px 6px; border-radius:6px; background:rgba(255,255,255,0.07); font-weight:600; }
+    .modified-badge { font-size:9px; color:var(--gold); font-weight:700; background:rgba(255,215,0,0.15); padding:1px 5px; border-radius:6px; border:1px solid rgba(255,215,0,0.3); }
+
+    /* ── BROWSER NOTICE ── */
+    .browser-notice {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: rgba(96,184,255,0.08); border: 1px solid rgba(96,184,255,0.3);
+      border-radius: 14px; padding: 12px 16px; margin-bottom: 20px;
+    }
+    .bn-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+    .bn-body { flex: 1; font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .bn-body strong { color: var(--blue); }
+    .bn-steps { display: block; margin-top: 4px; font-size: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 10px; }
+    .bn-close { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 0 4px; flex-shrink: 0; transition: color .2s; }
+    .bn-close:hover { color: var(--text); }
+
+    /* ── GAME CONFIG GRID ── */
+    .config-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px; margin-bottom: 28px;
+    }
+    .cfg-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .cfg-card.modified { border-color: rgba(255,215,0,0.5); background: rgba(255,215,0,0.04); }
+    .cfg-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing:.5px; }
+    .cfg-desc  { font-size: 10px; color: rgba(200,160,255,0.4); margin-top: -2px; }
+    .cfg-input {
+      width: 100%; padding: 7px 10px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: rgba(255,255,255,0.07); color: var(--text);
+      font-family: 'Quicksand',sans-serif; font-size: 14px; font-weight: 700;
+      outline: none; transition: border-color .2s;
+    }
+    .cfg-input:focus { border-color: var(--accent); }
+
+    /* ── PLAYER GIFT ── */
+    .gift-panel {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 16px 20px; margin-bottom: 28px;
+    }
+    .gift-row {
+      display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
+    }
+    .gift-field { display: flex; flex-direction: column; gap: 4px; }
+    .gift-field label { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .gift-field .pe-input { width: 90px; }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <h1>🛠️ Admin Panel</h1>
+  <span style="font-size:12px;color:var(--muted)">Khu Vườn Trên Mây</span>
+  <div class="topbar-right">
+    <button class="btn btn-success" onclick="exportAllData()">📤 Xuất JSON</button>
+    <button class="btn btn-info"    onclick="document.getElementById('importFileInput').click()">📥 Nhập JSON</button>
+    <input  type="file" id="importFileInput" accept=".json" style="display:none" onchange="importAllData(this)" />
+    <button class="btn btn-danger"  onclick="confirmClearAll()">🗑️ Xoá tất cả</button>
+    <a href="index.html" class="back-btn">🏠 Về Game</a>
+  </div>
+</div>
+
+<!-- STATS ROW -->
+<div class="stats-row" id="statsRow">
+  <div class="stat-card"><span class="stat-icon">👤</span><div class="stat-num" id="statUsers">0</div><div class="stat-lbl">Người chơi</div></div>
+  <div class="stat-card"><span class="stat-icon">⭐</span><div class="stat-num" id="statTopScore">0</div><div class="stat-lbl">Điểm cao nhất</div></div>
+  <div class="stat-card"><span class="stat-icon">🌱</span><div class="stat-num" id="statTotalPlants">0</div><div class="stat-lbl">Tổng cây đã trồng</div></div>
+  <div class="stat-card"><span class="stat-icon">💾</span><div class="stat-num" id="statStorageKB">0</div><div class="stat-lbl">KB đang dùng</div></div>
+</div>
+
+<!-- CROSS-BROWSER NOTICE -->
+<div class="browser-notice" id="browserNotice">
+  <span class="bn-icon">🌐</span>
+  <div class="bn-body">
+    <strong>Dữ liệu theo trình duyệt</strong> — localStorage chỉ lưu trong trình duyệt hiện tại. Để xem dữ liệu từ trình duyệt khác:
+    <span class="bn-steps">① Trình duyệt cũ → <strong>📤 Xuất JSON</strong> &nbsp;→&nbsp; ② Trình duyệt này → <strong>📥 Nhập JSON</strong></span>
+  </div>
+  <button class="bn-close" onclick="this.closest('.browser-notice').style.display='none'">✕</button>
+</div>
+
+<!-- USER TABLE -->
+<div class="section-title">👥 Danh sách người chơi</div>
+
+<div class="toolbar-row">
+  <input class="search-input" id="searchInput" type="text" placeholder="🔍 Tìm theo tên..." oninput="renderTable()" />
+  <select class="filter-select" id="sortSelect" onchange="renderTable()">
+    <option value="lastLogin-desc">Sắp xếp: Đăng nhập gần nhất</option>
+    <option value="score-desc">Sắp xếp: Điểm cao nhất</option>
+    <option value="name-asc">Sắp xếp: Tên A→Z</option>
+    <option value="createdAt-desc">Sắp xếp: Mới nhất</option>
+    <option value="totalPlants-desc">Sắp xếp: Nhiều cây nhất</option>
+  </select>
+  <button class="btn btn-ghost" onclick="loadData(); showToast('🔄 Đã làm mới')">🔄 Làm mới</button>
+</div>
+
+<div class="table-wrap" id="tableWrap">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Tên</th>
+        <th>⭐ Điểm</th>
+        <th>🏆 Level</th>
+        <th>🌱 Cây</th>
+        <th>🕐 Lần chơi cuối</th>
+        <th>📅 Ngày tạo</th>
+        <th>Thao tác</th>
+      </tr>
+    </thead>
+    <tbody id="userTbody"></tbody>
+  </table>
+  <div class="empty-state hidden" id="emptyState">
+    <span class="empty-icon">🌫️</span>
+    <p>Chưa có người chơi nào</p>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="section-title">🏅 Bảng xếp hạng Top 10</div>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Hạng</th><th>Tên</th><th>Điểm</th><th>Level</th><th>Tầng mây</th></tr></thead>
+    <tbody id="lbTbody"></tbody>
+  </table>
+</div>
+
+<!-- ══ PLANT EDITOR ═══════════════════════ -->
+<div class="section-title">🌱 Chỉnh sửa cây trồng</div>
+<div class="pe-toolbar">
+  <span class="pe-hint">ℹ️ Thay đổi sẽ áp dụng khi người chơi khởi động lại game. Hàng vàng đã bị sửa.</span>
+  <button class="btn btn-primary" onclick="savePlantConfig()">💾 Lưu tất cả</button>
+  <button class="btn btn-ghost"   onclick="resetAllPlantConfig()">↩️ Mặc định</button>
+</div>
+<div class="table-wrap" style="margin-bottom:28px">
+  <table id="plantEditorTable">
+    <thead>
+      <tr>
+        <th style="width:44px">Icon</th>
+        <th>Tên cây</th>
+        <th style="width:140px">Giá trồng (xu)</th>
+        <th style="width:140px">Thưởng xu</th>
+        <th style="width:150px">Thưởng điểm</th>
+        <th style="width:52px">Reset</th>
+      </tr>
+    </thead>
+    <tbody id="plantEditorBody"></tbody>
+  </table>
+</div>
+
+<!-- ══ FERTILIZER EDITOR ══════════════════════ -->
+<div class="section-title">🧪 Chỉnh sửa phân bón</div>
+<div class="pe-toolbar">
+  <span class="pe-hint">ℹ️ Chỉnh giá, hệ số tăng trưởng và thưởng. Hàng vàng đã bị sửa.</span>
+  <button class="btn btn-primary" onclick="saveFertConfig()">💾 Lưu phân bón</button>
+  <button class="btn btn-ghost"   onclick="resetAllFertConfig()">↩️ Mặc định</button>
+</div>
+<div class="table-wrap" style="margin-bottom:28px">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:36px">Icon</th>
+        <th>Tên phân</th>
+        <th style="width:110px">Giá (xu)</th>
+        <th style="width:110px">Tốc độ ×</th>
+        <th style="width:120px">Thưởng thêm</th>
+        <th style="width:52px">Reset</th>
+      </tr>
+    </thead>
+    <tbody id="fertEditorBody"></tbody>
+  </table>
+</div>
+
+<!-- ══ POT EDITOR ══════════════════════════════ -->
+<div class="section-title">🪴 Chỉnh sửa cấp độ chậu</div>
+<div class="pe-toolbar">
+  <span class="pe-hint">ℹ️ Chỉnh giá nâng cấp, tốc độ sinh trưởng (+%) và hệ số thưởng (×). Hàng vàng đã bị sửa.</span>
+  <button class="btn btn-primary" onclick="savePotConfig()">💾 Lưu chậu</button>
+  <button class="btn btn-ghost"   onclick="resetAllPotConfig()">↩️ Mặc định</button>
+</div>
+<div class="table-wrap" style="margin-bottom:28px">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:36px">Icon</th>
+        <th style="width:140px">Tên chậu</th>
+        <th style="width:130px">Giá nâng cấp (xu)</th>
+        <th style="width:130px">Tốc độ (+%)</th>
+        <th style="width:130px">Thưởng (×)</th>
+        <th>Mô tả</th>
+        <th style="width:52px">Reset</th>
+      </tr>
+    </thead>
+    <tbody id="potEditorBody"></tbody>
+  </table>
+</div>
+
+<!-- ══ LEVEL LADDER EDITOR ══════════════════════ -->
+<div class="section-title">🏆 Chỉnh sửa Bậc Thang Cấp Độ</div>
+<div class="pe-toolbar">
+  <span class="pe-hint">ℹ️ Tùy chỉnh các mốc cấp độ, danh hiệu, mở khóa và phần thưởng cho người chơi.</span>
+  <button class="btn btn-primary" onclick="saveLadderConfig()">💾 Lưu Bậc Thang</button>
+  <button class="btn btn-success" onclick="addNewLadderMilestone()">➕ Thêm mốc</button>
+  <button class="btn btn-ghost"   onclick="resetAllLadderConfig()">↩️ Mặc định</button>
+</div>
+<div class="table-wrap" style="margin-bottom:28px">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:70px">Level</th>
+        <th style="width:44px">Icon</th>
+        <th style="width:160px">Danh hiệu</th>
+        <th>Mô tả</th>
+        <th>Mở khóa</th>
+        <th style="width:90px">Xu</th>
+        <th style="width:80px">Nước</th>
+        <th style="width:80px">Nắng</th>
+        <th style="width:110px">Phân bón</th>
+        <th style="width:40px">Xóa</th>
+      </tr>
+    </thead>
+    <tbody id="ladderEditorBody"></tbody>
+  </table>
+</div>
+
+<!-- ══ GAME CONFIG EDITOR ══════════════════════ -->
+<div class="section-title">⚙️ Cấu hình game</div>
+<div class="pe-toolbar">
+  <span class="pe-hint">ℹ️ Thay đổi điểm/level, tài nguyên ban đầu và tốc độ sự kiện. Áp dụng khi người chơi khởi động lại game.</span>
+  <button class="btn btn-primary" onclick="saveGameConfig()">💾 Lưu config</button>
+  <button class="btn btn-ghost"   onclick="resetGameConfig()">↩️ Mặc định</button>
+</div>
+<div class="config-grid" id="gameConfigGrid"></div>
+<div class="pe-toolbar" style="margin-top:14px">
+  <span class="pe-hint">📈 Xem trước bảng điểm lên cấp theo cấu hình Base XP & Growth hiện tại:</span>
+</div>
+<div class="table-wrap" style="max-height:260px;overflow-y:auto;margin-bottom:28px">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:90px">Cấp Độ</th>
+        <th>XP Cần Để Qua Cấp</th>
+        <th>Tổng Điểm Tích Lũy Cần Đạt</th>
+        <th>Tầng Mây Mở Khóa</th>
+      </tr>
+    </thead>
+    <tbody id="adminXPCurvePreviewBody"></tbody>
+  </table>
+</div>
+
+<!-- ══ PLAYER GIFT ══════════════════════════════ -->
+<div class="section-title">🎁 Nạp tài nguyên cho người chơi</div>
+<div class="gift-panel">
+  <div class="gift-row">
+    <select class="filter-select" id="giftPlayerSelect" style="min-width:180px">
+      <option value="">-- Chọn người chơi --</option>
+    </select>
+    <div class="gift-field">
+      <label>💰 Xu</label>
+      <input type="number" id="giftCoins" min="0" value="100" class="pe-input" />
+    </div>
+    <div class="gift-field">
+      <label>💧 Nước</label>
+      <input type="number" id="giftWater" min="0" max="99" value="20" class="pe-input" />
+    </div>
+    <div class="gift-field">
+      <label>☀️ Nắng</label>
+      <input type="number" id="giftSun" min="0" max="99" value="10" class="pe-input" />
+    </div>
+    <div class="gift-field">
+      <label>⭐ Điểm</label>
+      <input type="number" id="giftScore" min="0" value="0" class="pe-input" />
+    </div>
+    <button class="btn btn-success" onclick="giveResources()">🎁 Tặng ngay</button>
+  </div>
+  <div id="giftResult" style="font-size:12px;color:var(--green);margin-top:8px;min-height:18px"></div>
+</div>
+
+<!-- ══ MODALS ══════════════════════════════ -->
+
+<!-- Edit User Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h2>✏️ Chỉnh sửa người chơi</h2>
+    <p class="modal-sub" id="editModalSub"></p>
+    <div class="modal-field">
+      <label>Tên hiển thị</label>
+      <input id="editName" type="text" maxlength="20" />
+    </div>
+    <div class="modal-field">
+      <label>Điểm</label>
+      <input id="editScore" type="number" min="0" />
+    </div>
+    <div class="modal-field">
+      <label>Xu</label>
+      <input id="editCoins" type="number" min="0" />
+    </div>
+    <div class="modal-field">
+      <label>Nước</label>
+      <input id="editWater" type="number" min="0" max="99" />
+    </div>
+    <div class="modal-field">
+      <label>Tầng mây (0–4)</label>
+      <input id="editTier" type="number" min="0" max="4" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveEditModal()">💾 Lưu</button>
+      <button class="btn btn-ghost"   onclick="closeModal('editModal')">Huỷ</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Save Modal -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal" style="max-width:560px">
+    <h2>📄 Xem dữ liệu save</h2>
+    <p class="modal-sub" id="viewModalSub"></p>
+    <div class="save-viewer" id="saveViewer"></div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn btn-danger" id="deleteSaveBtn" onclick="deleteSaveFromModal()">🗑️ Xoá save này</button>
+      <button class="btn btn-ghost"  onclick="closeModal('viewModal')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal" style="max-width:380px;text-align:center">
+    <span style="font-size:52px;display:block;margin-bottom:12px">⚠️</span>
+    <h2 id="confirmTitle">Xoá người chơi?</h2>
+    <p class="modal-sub" id="confirmSub" style="text-align:center"></p>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="confirmOkBtn">Xoá</button>
+      <button class="btn btn-ghost"  onclick="closeModal('confirmModal')">Huỷ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="adminToast"></div>
+
+<!-- ══ SCRIPT ═════════════════════════════════════ -->
+<!-- Load plant/fert/pot/ladder data so admin editors can read definition data -->
+<script src="data/plants.js?v=2"></script>
+<script src="data/fertilizers.js?v=2"></script>
+<script src="data/pot-grades.js?v=2"></script>
+<script src="data/level-ladder.js?v=2"></script>
+<!-- Admin-only constants (match keys in constants.js) -->
+<script>
+  // Define constants needed by admin without loading constants.js
+  // (constants.js uses 'use strict' + const which conflicts with admin script)
+  var LS_USERS         = 'kvtm_users';
+  var LS_CURRENT       = 'kvtm_current';
+  var LS_SAVE          = function(name) { return 'kvtm_save_' + name; };
+  var LS_PLANT_CONFIG  = 'kvtm_plant_config';
+  var LS_POT_CONFIG    = 'kvtm_pot_config';
+  var LS_LADDER_CONFIG = 'kvtm_ladder_config';
+</script>
+<script>
+'use strict';
+
+// LS constants defined in script block above
+
+// ── State ───────────────────────────────────────────────────────────
+let allUsers = [];
+let editingUser = null;
+let viewingUser = null;
+
+// ── Compact Number Formatter (K, M, B, T) ─────────────────────────────
+function formatNumber(num) {
+  if (num === null || num === undefined || isNaN(num)) return '0';
+  const n = Math.abs(Number(num));
+  const sign = num < 0 ? '-' : '';
+  if (n < 1000) return sign + n.toLocaleString('vi-VN');
+  if (n < 1000000) {
+    const v = (n / 1000).toFixed(n % 1000 === 0 ? 0 : (n < 10000 ? 1 : 0));
+    return sign + v.replace(/\.0+$/, '') + 'K';
+  }
+  if (n < 1000000000) {
+    const v = (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 2);
+    return sign + v.replace(/\.0+$/, '').replace(/(\.[1-9])0$/, '$1') + 'M';
+  }
+  if (n < 1000000000000) {
+    const v = (n / 1000000000).toFixed(2);
+    return sign + v.replace(/\.0+$/, '').replace(/(\.[1-9])0$/, '$1') + 'B';
+  }
+  const v = (n / 1000000000000).toFixed(2);
+  return sign + v.replace(/\.0+$/, '') + 'T';
+}
+
+// ── Level Calculation (Progressive XP Curve) ─────────────────────────
+function getAdminLevelConfig() {
+  let cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem(LS_GAME_CONFIG) || '{}'); } catch {}
+  const base = cfg.XP_BASE ?? 100;
+  const growth = cfg.XP_GROWTH ?? 50;
+  return { base, growth };
+}
+
+function calcLevel(score) {
+  if (!score || score <= 0) return 0;
+  const { base, growth } = getAdminLevelConfig();
+  if (growth <= 0) return Math.floor(score / Math.max(1, base));
+  const a = growth / 2;
+  const b = base - growth / 2;
+  const discriminant = b * b + 4 * a * score;
+  const level = Math.floor((-b + Math.sqrt(discriminant)) / (2 * a));
+  return Math.max(0, level);
+}
+
+// ── Init ────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', loadData);
+
+function loadData() {
+  try {
+    allUsers = JSON.parse(localStorage.getItem(LS_USERS) || '[]');
+    // Enrich with save data
+    allUsers.forEach(u => {
+      const raw = localStorage.getItem(LS_SAVE(u.name));
+      if (raw) {
+        try {
+          const s = JSON.parse(raw);
+          u.score       = s.score       ?? u.score       ?? 0;
+          u.coins       = s.coins       ?? 50;
+          u.water       = s.water       ?? 20;
+          u.totalPlants = s.totalPlants ?? u.totalPlants ?? 0;
+          u.activeTier  = s.activeTier  ?? 0;
+          u.savedAt     = s.savedAt     ?? null;
+          u.hasSave     = true;
+        } catch { u.hasSave = false; }
+      } else { u.hasSave = false; u.score = u.score ?? 0; u.totalPlants = u.totalPlants ?? 0; }
+      u.level = calcLevel(u.score || 0);
+    });
+  } catch { allUsers = []; }
+  renderStats();
+  renderTable();
+  renderLeaderboard();
+  renderPlantEditor();
+  renderFertEditor();
+  renderPotEditor();
+  renderLadderEditor();
+  renderGameConfig();
+  renderGiftPlayerSelect();
+}
+
+// ── Stats ───────────────────────────────────────────────────────────
+function renderStats() {
+  document.getElementById('statUsers').textContent = allUsers.length;
+  const topScore = allUsers.length ? Math.max(...allUsers.map(u => u.score || 0)) : 0;
+  document.getElementById('statTopScore').textContent = formatNumber(topScore);
+  document.getElementById('statTopScore').title = topScore.toLocaleString('vi-VN') + ' điểm';
+  document.getElementById('statTotalPlants').textContent =
+    allUsers.reduce((a, u) => a + (u.totalPlants || 0), 0);
+  // Estimate localStorage usage
+  let total = 0;
+  for (const k in localStorage) {
+    if (k.startsWith('kvtm_')) total += (localStorage.getItem(k) || '').length * 2;
+  }
+  document.getElementById('statStorageKB').textContent = (total / 1024).toFixed(1);
+}
+
+// ── Table ───────────────────────────────────────────────────────────
+function renderTable() {
+  const query  = document.getElementById('searchInput').value.trim().toLowerCase();
+  const sortVal = document.getElementById('sortSelect').value;
+  const [sortKey, sortDir] = sortVal.split('-');
+
+  let users = allUsers.filter(u => !query || u.name.toLowerCase().includes(query));
+
+  users.sort((a, b) => {
+    let va = a[sortKey] ?? 0, vb = b[sortKey] ?? 0;
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    return sortDir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  });
+
+  const tbody = document.getElementById('userTbody');
+  const empty = document.getElementById('emptyState');
+
+  if (users.length === 0) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  const now = Date.now();
+  const topScore = Math.max(...allUsers.map(u => u.score || 0));
+  const currentUser = localStorage.getItem(LS_CURRENT);
+
+  tbody.innerHTML = users.map((u, i) => {
+    const isTop     = u.score >= topScore && topScore > 0;
+    const isNew     = (now - (u.createdAt || 0)) < 86400000;
+    const isCurrent = u.name === currentUser;
+    const badge = isTop ? '<span class="user-badge badge-top">👑 Top</span>'
+                : isCurrent ? '<span class="user-badge badge-active">▶ Online</span>'
+                : isNew ? '<span class="user-badge badge-new">✨ Mới</span>' : '';
+    return `<tr>
+      <td style="color:var(--muted);font-size:12px">${i+1}</td>
+      <td><span class="user-name">${esc(u.name)}</span> ${badge}</td>
+      <td><span class="score-val" title="${(u.score || 0).toLocaleString('vi-VN')} điểm">${formatNumber(u.score || 0)}</span></td>
+      <td><span class="level-val">Lv.${u.level || 0}</span></td>
+      <td>${u.totalPlants || 0}</td>
+      <td><span class="date-val">${u.savedAt ? relativeTime(u.savedAt) : u.lastLogin ? relativeTime(u.lastLogin) : '—'}</span></td>
+      <td><span class="date-val">${u.createdAt ? formatDate(u.createdAt) : '—'}</span></td>
+      <td>
+        <div class="action-cell">
+          <button class="btn btn-info btn-sm"    onclick="openViewModal('${esc(u.name)}')">👁 Xem</button>
+          <button class="btn btn-success btn-sm" onclick="openEditModal('${esc(u.name)}')">✏️</button>
+          <button class="btn btn-danger btn-sm"  onclick="confirmDelete('${esc(u.name)}')">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Leaderboard ─────────────────────────────────────────────────────
+function renderLeaderboard() {
+  const top10 = [...allUsers].sort((a,b) => (b.score||0)-(a.score||0)).slice(0,10);
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('lbTbody').innerHTML = top10.length === 0
+    ? `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Chưa có dữ liệu</td></tr>`
+    : top10.map((u, i) => `<tr>
+        <td>${medals[i] || (i+1)}</td>
+        <td style="font-weight:700">${esc(u.name)}</td>
+        <td style="color:var(--gold);font-weight:700" title="${(u.score || 0).toLocaleString('vi-VN')} điểm">${formatNumber(u.score || 0)}</td>
+        <td style="color:var(--accent)">Lv.${u.level || 0}</td>
+        <td>Tầng ${(u.activeTier||0)+1}</td>
+      </tr>`).join('');
+}
+
+// ── Edit Modal ───────────────────────────────────────────────────────
+function openEditModal(name) {
+  editingUser = allUsers.find(u => u.name === name);
+  if (!editingUser) return;
+  document.getElementById('editModalSub').textContent = `User: ${name}`;
+  document.getElementById('editName').value  = editingUser.name;
+  document.getElementById('editScore').value = editingUser.score || 0;
+  document.getElementById('editCoins').value = editingUser.coins ?? 50;
+  document.getElementById('editWater').value = editingUser.water ?? 20;
+  document.getElementById('editTier').value  = editingUser.activeTier ?? 0;
+  openModal('editModal');
+}
+
+function saveEditModal() {
+  if (!editingUser) return;
+  const oldName  = editingUser.name;
+  const newName  = document.getElementById('editName').value.trim();
+  const newScore = parseInt(document.getElementById('editScore').value) || 0;
+  const newCoins = parseInt(document.getElementById('editCoins').value) || 50;
+  const newWater = parseInt(document.getElementById('editWater').value) || 20;
+  const newTier  = parseInt(document.getElementById('editTier').value)  || 0;
+
+  if (!newName || newName.length < 2) { showToast('❌ Tên không hợp lệ!'); return; }
+
+  // Update profile list
+  const users = JSON.parse(localStorage.getItem(LS_USERS) || '[]');
+  const idx = users.findIndex(u => u.name === oldName);
+  if (idx < 0) return;
+
+  if (newName !== oldName) {
+    // Rename: move save key
+    const saveData = localStorage.getItem(LS_SAVE(oldName));
+    if (saveData) {
+      localStorage.setItem(LS_SAVE(newName), saveData);
+      localStorage.removeItem(LS_SAVE(oldName));
+    }
+    // Update current session if renamed
+    if (localStorage.getItem(LS_CURRENT) === oldName) {
+      localStorage.setItem(LS_CURRENT, newName);
+    }
+  }
+
+  users[idx].name = newName;
+  users[idx].score = newScore;
+  users[idx].totalPlants = users[idx].totalPlants ?? 0;
+  localStorage.setItem(LS_USERS, JSON.stringify(users));
+
+  // Update save JSON
+  const rawSave = localStorage.getItem(LS_SAVE(newName));
+  if (rawSave) {
+    try {
+      const s = JSON.parse(rawSave);
+      s.score = newScore; s.coins = newCoins; s.water = newWater; s.activeTier = newTier;
+      localStorage.setItem(LS_SAVE(newName), JSON.stringify(s));
+    } catch {}
+  }
+
+  closeModal('editModal');
+  loadData();
+  showToast(`✅ Đã cập nhật "${newName}"`);
+}
+
+// ── View Save Modal ──────────────────────────────────────────────────
+function openViewModal(name) {
+  viewingUser = name;
+  document.getElementById('viewModalSub').textContent = `User: ${name}`;
+  const raw = localStorage.getItem(LS_SAVE(name));
+  const saveViewer = document.getElementById('saveViewer');
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      // Pretty print with highlights
+      saveViewer.textContent = JSON.stringify(parsed, null, 2);
+    } catch { saveViewer.textContent = raw; }
+    document.getElementById('deleteSaveBtn').disabled = false;
+  } else {
+    saveViewer.textContent = '(Chưa có save data)';
+    document.getElementById('deleteSaveBtn').disabled = true;
+  }
+  openModal('viewModal');
+}
+
+function deleteSaveFromModal() {
+  if (!viewingUser) return;
+  if (!confirm(`Xoá save của "${viewingUser}"? Dữ liệu game sẽ mất, nhưng profile vẫn còn.`)) return;
+  localStorage.removeItem(LS_SAVE(viewingUser));
+  // Reset stats in profile
+  const users = JSON.parse(localStorage.getItem(LS_USERS) || '[]');
+  const u = users.find(x => x.name === viewingUser);
+  if (u) { u.score = 0; u.totalPlants = 0; localStorage.setItem(LS_USERS, JSON.stringify(users)); }
+  closeModal('viewModal');
+  loadData();
+  showToast(`🗑️ Đã xoá save của "${viewingUser}"`);
+}
+
+// ── Delete User ──────────────────────────────────────────────────────
+function confirmDelete(name) {
+  document.getElementById('confirmTitle').textContent = `Xoá "${name}"?`;
+  document.getElementById('confirmSub').textContent   = 'Toàn bộ dữ liệu của người chơi này sẽ bị xoá vĩnh viễn.';
+  document.getElementById('confirmOkBtn').onclick = () => deleteUser(name);
+  openModal('confirmModal');
+}
+
+function deleteUser(name) {
+  let users = JSON.parse(localStorage.getItem(LS_USERS) || '[]');
+  users = users.filter(u => u.name !== name);
+  localStorage.setItem(LS_USERS, JSON.stringify(users));
+  localStorage.removeItem(LS_SAVE(name));
+  if (localStorage.getItem(LS_CURRENT) === name) localStorage.removeItem(LS_CURRENT);
+  closeModal('confirmModal');
+  loadData();
+  showToast(`🗑️ Đã xoá "${name}"`);
+}
+
+// ── Clear All ────────────────────────────────────────────────────────
+function confirmClearAll() {
+  document.getElementById('confirmTitle').textContent = 'Xoá TẤT CẢ dữ liệu?';
+  document.getElementById('confirmSub').textContent   = 'Toàn bộ người chơi và tiến trình game sẽ bị xoá vĩnh viễn!';
+  document.getElementById('confirmOkBtn').onclick = () => {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('kvtm_'));
+    keys.forEach(k => localStorage.removeItem(k));
+    closeModal('confirmModal');
+    loadData();
+    showToast('🗑️ Đã xoá toàn bộ dữ liệu');
+  };
+  openModal('confirmModal');
+}
+
+// ── Export ───────────────────────────────────────────────────────────
+function exportAllData() {
+  const data = {};
+  for (const k in localStorage) {
+    if (k.startsWith('kvtm_')) data[k] = localStorage.getItem(k);
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `kvtm_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  showToast('📤 Đã xuất file JSON');
+}
+
+function importAllData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      // Validate: must have at least one kvtm_ key
+      const keys = Object.keys(data).filter(k => k.startsWith('kvtm_'));
+      if (keys.length === 0) { showToast('❌ File không hợp lệ — không tìm thấy dữ liệu kvtm!'); return; }
+
+      const existingUsers = JSON.parse(localStorage.getItem('kvtm_users') || '[]');
+      const importedUsers = data['kvtm_users'] ? JSON.parse(data['kvtm_users']) : [];
+
+      // Ask merge or overwrite
+      const hasCurrent = existingUsers.length > 0;
+      let mode = 'overwrite';
+      if (hasCurrent && importedUsers.length > 0) {
+        const choice = confirm(
+          `Trình duyệt này đang có ${existingUsers.length} người chơi.\n` +
+          `File nhập có ${importedUsers.length} người chơi.\n\n` +
+          `OK = Gộp (merge) — giữ cả hai\n` +
+          `Huỷ = Ghi đè (overwrite) — xoá dữ liệu cũ`
+        );
+        mode = choice ? 'merge' : 'overwrite';
+      }
+
+      if (mode === 'overwrite') {
+        // Clear existing kvtm keys then write all imported
+        Object.keys(localStorage).filter(k => k.startsWith('kvtm_')).forEach(k => localStorage.removeItem(k));
+        keys.forEach(k => localStorage.setItem(k, data[k]));
+        showToast(`✅ Đã nhập ${keys.length} mục (ghi đè)`);
+      } else {
+        // Merge: combine user lists, imported saves overwrite same-name saves
+        keys.forEach(k => {
+          if (k === 'kvtm_users') return; // handle separately
+          localStorage.setItem(k, data[k]);
+        });
+        // Merge user arrays (union by name, imported wins on conflict)
+        const merged = [...existingUsers];
+        importedUsers.forEach(iu => {
+          const idx = merged.findIndex(u => u.name === iu.name);
+          if (idx >= 0) merged[idx] = { ...merged[idx], ...iu };
+          else merged.push(iu);
+        });
+        localStorage.setItem('kvtm_users', JSON.stringify(merged));
+        showToast(`✅ Đã gộp: ${merged.length} người chơi tổng cộng`);
+      }
+
+      input.value = ''; // reset file input
+      loadData();
+    } catch (err) {
+      showToast('❌ Lỗi đọc file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── Modal helpers ─────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('show'); });
+});
+
+// ── Toast ────────────────────────────────────────────────────────────
+let toastT;
+function showToast(msg) {
+  const t = document.getElementById('adminToast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Util ─────────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function formatDate(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+function relativeTime(ts) {
+  if (!ts) return '—';
+  const diff = (Date.now() - ts) / 1000;
+  if (diff < 60)    return 'vừa xong';
+  if (diff < 3600)  return `${Math.floor(diff/60)} phút trước`;
+  if (diff < 86400) return `${Math.floor(diff/3600)} giờ trước`;
+  return `${Math.floor(diff/86400)} ngày trước`;
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════
+// 🌱  PLANT EDITOR
+// ════════════════════════════════════════════════════════════════════
+// LS_PLANT_CONFIG is defined in constants.js
+
+
+/** Render cả bảng chỉnh sửa cây */
+function renderPlantEditor() {
+  let cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem(LS_PLANT_CONFIG) || '{}'); } catch {}
+  const tbody = document.getElementById('plantEditorBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = Object.entries(PLANTS).map(([key, def]) => {
+    const rc  = (RARITY_COLOR && RARITY_COLOR[def.rarity]) || { text:'#aaa', label:'Thường' };
+    const ov  = cfg[key] || {};
+    const cost  = ov.cost                ?? def.cost;
+    const coins = ov.reward?.coins       ?? def.reward.coins;
+    const score = ov.reward?.score       ?? def.reward.score;
+    const isModified = ov.cost !== undefined || ov.reward?.coins !== undefined || ov.reward?.score !== undefined;
+    return `
+      <tr class="plant-row${isModified ? ' modified' : ''}">
+        <td style="text-align:center;font-size:22px">${def.icon}</td>
+        <td>
+          <div class="plant-name-cell">
+            <span>${def.name}</span>
+            <span class="rarity-tag" style="color:${rc.text}">${rc.label}</span>
+            ${isModified ? '<span class="modified-badge">• đã sửa</span>' : ''}
+          </div>
+          <div style="font-size:10px;color:rgba(200,160,255,0.45);margin-top:1px">${def.desc}</div>
+        </td>
+        <td>
+          <div class="pe-field">
+            <label>Giá trồng</label>
+            <div class="pe-input-wrap">
+              <span class="pe-unit">💰</span>
+              <input class="pe-input" type="number" min="1" max="9999"
+                value="${cost}" data-key="${key}" data-field="cost"
+                data-default="${def.cost}" oninput="markRow(this)" />
+            </div>
+          </div>
+        </td>
+        <td>
+          <div class="pe-field">
+            <label>Thưởng xu</label>
+            <div class="pe-input-wrap">
+              <span class="pe-unit">💰</span>
+              <input class="pe-input" type="number" min="1" max="9999"
+                value="${coins}" data-key="${key}" data-field="coins"
+                data-default="${def.reward.coins}" oninput="markRow(this)" />
+            </div>
+          </div>
+        </td>
+        <td>
+          <div class="pe-field">
+            <label>Thưởng điểm</label>
+            <div class="pe-input-wrap">
+              <span class="pe-unit">⭐</span>
+              <input class="pe-input" type="number" min="1" max="99999"
+                value="${score}" data-key="${key}" data-field="score"
+                data-default="${def.reward.score}" oninput="markRow(this)" />
+            </div>
+          </div>
+        </td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="resetOnePlant('${key}')" title="Khôi phục mặc định">↩️</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+/** Đánh dấu row bị chỉnh sửa */
+function markRow(input) {
+  const row = input.closest('tr');
+  const val = parseInt(input.value);
+  const def = parseInt(input.dataset.default);
+  if (row) row.classList.toggle('modified', val !== def);
+}
+
+/** Lưu toàn bộ cấu hình lên localStorage */
+function savePlantConfig() {
+  const inputs = document.querySelectorAll('.pe-input');
+  const cfg = {};
+  inputs.forEach(inp => {
+    const key   = inp.dataset.key;
+    const field = inp.dataset.field;
+    const val   = parseInt(inp.value);
+    if (isNaN(val) || val < 1) return;
+    if (!cfg[key]) cfg[key] = { reward: {} };
+    if (field === 'cost')   cfg[key].cost = val;
+    if (field === 'coins')  cfg[key].reward.coins = val;
+    if (field === 'score')  cfg[key].reward.score = val;
+  });
+  localStorage.setItem(LS_PLANT_CONFIG, JSON.stringify(cfg));
+  renderPlantEditor();
+  showAdminToast('💾 Đã lưu cấu hình! Người chơi phải khởi động lại game để áp dụng.', '#50e3a4');
+}
+
+/** Khôi phục cấu hình mặc định cho 1 cây (chỉ inputs, chưa lưu) */
+function resetOnePlant(key) {
+  const def = PLANTS[key];
+  if (!def) return;
+  ['cost','coins','score'].forEach(field => {
+    const inp = document.querySelector(`.pe-input[data-key="${key}"][data-field="${field}"]`);
+    if (!inp) return;
+    inp.value = field === 'cost' ? def.cost : field === 'coins' ? def.reward.coins : def.reward.score;
+    inp.closest('tr')?.classList.remove('modified');
+  });
+  showAdminToast(`↩️ Đã khôi phục mặc định cho ${def.name} (chưa lưu)`);
+}
+
+/** Khôi phục tất cả về mặc định và xóa localStorage */
+function resetAllPlantConfig() {
+  if (!confirm('Điều này sẽ xóa toàn bộ chỉnh sửa cây. Tiếp tục?')) return;
+  localStorage.removeItem(LS_PLANT_CONFIG);
+  renderPlantEditor();
+  showAdminToast('↩️ Đã khôi phục tất cả mặc định!', '#60b8ff');
+}
+
+function showAdminToast(msg, color='#ffd700') {
+  const t = document.getElementById('adminToast');
+  t.textContent = msg;
+  t.style.background = color === '#50e3a4' ? 'rgba(80,227,164,0.15)' :
+                        color === '#60b8ff' ? 'rgba(96,184,255,0.15)' :
+                        'rgba(255,215,0,0.15)';
+  t.style.borderColor = color + '44';
+  t.style.color = color;
+  t.classList.add('show');
+  clearTimeout(showAdminToast._t);
+  showAdminToast._t = setTimeout(() => t.classList.remove('show'), 3000);
+}
+// ═════════════════════════════════════════════════════════════
+// 🧪 FERTILIZER EDITOR
+// ═════════════════════════════════════════════════════════════
+const LS_FERT_CONFIG = 'kvtm_fert_config';
+
+const RARITY_LABELS = { common:'Thường', uncommon:'Hiếm', rare:'Quý hiếm', epic:'Sử thi', legendary:'Huyền thoại' };
+
+function renderFertEditor() {
+  let cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem(LS_FERT_CONFIG) || '{}'); } catch {}
+  const tbody = document.getElementById('fertEditorBody');
+  if (!tbody || typeof FERTILIZERS === 'undefined') return;
+
+  tbody.innerHTML = Object.entries(FERTILIZERS).map(([key, def]) => {
+    const ov = cfg[key] || {};
+    const cost     = ov.cost     ?? def.cost;
+    const growMult = ov.growMult ?? def.growMult;
+    const reward   = ov.rewardBonus ?? def.rewardBonus;
+    const isM = ov.cost !== undefined || ov.growMult !== undefined || ov.rewardBonus !== undefined;
+    return `<tr class="plant-row${isM ? ' modified' : ''}">
+      <td style="text-align:center;font-size:20px">${def.icon}</td>
+      <td>
+        <div class="plant-name-cell">
+          <span style="font-weight:700">${def.name}</span>
+          <span class="rarity-tag">${RARITY_LABELS[def.rarity] || def.rarity}</span>
+          ${isM ? '<span class="modified-badge">• đã sửa</span>' : ''}
+        </div>
+        <div style="font-size:10px;color:rgba(200,160,255,0.45)">${def.desc}</div>
+      </td>
+      <td><div class="pe-field">
+        <label>Giá (xu)</label>
+        <div class="pe-input-wrap"><span class="pe-unit">💰</span>
+          <input class="pe-input fe-input" type="number" min="1" max="999" value="${cost}"
+            data-key="${key}" data-field="cost" data-default="${def.cost}" oninput="markRow(this)" />
+        </div></div></td>
+      <td><div class="pe-field">
+        <label>Tốc độ ×</label>
+        <div class="pe-input-wrap"><span class="pe-unit">⚡</span>
+          <input class="pe-input fe-input" type="number" min="1" max="50" step="0.5" value="${growMult}"
+            data-key="${key}" data-field="growMult" data-default="${def.growMult}" oninput="markRow(this)" />
+        </div></div></td>
+      <td><div class="pe-field">
+        <label>Thưởng %</label>
+        <div class="pe-input-wrap"><span class="pe-unit">⭐</span>
+          <input class="pe-input fe-input" type="number" min="0" max="5" step="0.5" value="${reward}"
+            data-key="${key}" data-field="rewardBonus" data-default="${def.rewardBonus}" oninput="markRow(this)" />
+        </div></div></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="resetOneFert('${key}')">&#x21A9;</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function saveFertConfig() {
+  const inputs = document.querySelectorAll('.fe-input');
+  const cfg = {};
+  inputs.forEach(inp => {
+    const key = inp.dataset.key, field = inp.dataset.field;
+    const val = parseFloat(inp.value);
+    if (isNaN(val)) return;
+    if (!cfg[key]) cfg[key] = {};
+    cfg[key][field] = val;
+  });
+  localStorage.setItem(LS_FERT_CONFIG, JSON.stringify(cfg));
+  renderFertEditor();
+  showAdminToast('💾 Đã lưu cấu hình phân bón!', '#50e3a4');
+}
+
+function resetAllFertConfig() {
+  if (!confirm('Khôi phục tất cả phân bón về mặc định?')) return;
+  localStorage.removeItem(LS_FERT_CONFIG);
+  renderFertEditor();
+  showAdminToast('↩️ Đã khôi phục mặc định phân bón!', '#60b8ff');
+}
+
+function resetOneFert(key) {
+  const def = FERTILIZERS[key]; if (!def) return;
+  document.querySelector(`.fe-input[data-key="${key}"][data-field="cost"]`).value = def.cost;
+  document.querySelector(`.fe-input[data-key="${key}"][data-field="growMult"]`).value = def.growMult;
+  document.querySelector(`.fe-input[data-key="${key}"][data-field="rewardBonus"]`).value = def.rewardBonus;
+  document.querySelectorAll(`tr:has(.fe-input[data-key="${key}"])`).forEach(r => r.classList.remove('modified'));
+  showAdminToast(`↩️ Khôi phục ${def.name} (chưa lưu)`);
+}
+
+// ═════════════════════════════════════════════════════════════
+// ⚙️ GAME CONFIG EDITOR
+// ═════════════════════════════════════════════════════════════
+const LS_GAME_CONFIG = 'kvtm_game_config';
+
+const GAME_CONFIG_DEFS = [
+  { key: 'XP_BASE',         label: 'Điểm Cấp 1 (XP)',     desc: 'Điểm kinh nghiệm cần cho cấp 1', default: 100,  min: 10,  max: 50000 },
+  { key: 'XP_GROWTH',       label: 'Tăng thêm/Cấp (+XP)', desc: 'Tăng độ khó mỗi cấp (Lv2 cần Base+Growth)', default: 50, min: 0, max: 10000 },
+  { key: 'LEVELS_PER_TIER', label: 'Level/Tầng mây',      desc: 'Level để mở 1 tầng mây mới',     default: 10,   min: 1,   max: 100 },
+  { key: 'START_COINS',     label: 'Xu ban đầu',          desc: 'Xu khi tạo tài khoản',           default: 50,   min: 0,   max: 9999 },
+  { key: 'START_WATER',     label: 'Nước ban đầu',        desc: 'Nước khi tạo tài khoản',         default: 20,   min: 0,   max: 99 },
+  { key: 'START_SUN',       label: 'Nắng ban đầu',        desc: 'Nắng khi tạo tài khoản',         default: 10,   min: 0,   max: 99 },
+  { key: 'RAIN_INT',        label: 'Chu kỳ mưa (s)',       desc: 'Frame giữa 2 lần mưa',            default: 1800, min: 60,  max: 18000 },
+  { key: 'SUN_INT',         label: 'Chu kỳ nắng (s)',      desc: 'Frame giữa 2 lần nắng',           default: 900,  min: 60,  max: 9000 },
+  { key: 'BONUS_INT',       label: 'Chu kỳ xu (%)',       desc: 'Frame giữa 2 lần thưởng xu',       default: 3600, min: 60,  max: 36000 },
+  { key: 'GROW_TICK',       label: 'Tốc độ cây (f)',      desc: 'Frame/1 tick tăng trưởng',       default: 60,   min: 5,   max: 600 },
+  { key: 'WATER_MULT',      label: 'Hệ số tưới',         desc: 'Tăng tốc độ khi tưới nước',        default: 2,    min: 1,   max: 10 },
+];
+
+function renderGameConfig() {
+  let cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem(LS_GAME_CONFIG) || '{}'); } catch {}
+  const grid = document.getElementById('gameConfigGrid');
+  if (!grid) return;
+  grid.innerHTML = GAME_CONFIG_DEFS.map(d => {
+    const val = cfg[d.key] ?? d.default;
+    const isM = cfg[d.key] !== undefined && cfg[d.key] !== d.default;
+    return `<div class="cfg-card${isM ? ' modified' : ''}" id="cfgCard_${d.key}">
+      <div class="cfg-label">${d.label}</div>
+      <div class="cfg-desc">${d.desc}</div>
+      <input class="cfg-input" type="number" min="${d.min}" max="${d.max}"
+        value="${val}" data-cfg-key="${d.key}" data-default="${d.default}"
+        oninput="this.closest('.cfg-card').classList.toggle('modified', parseFloat(this.value) !== ${d.default}); renderAdminXPCurvePreview()" />
+    </div>`;
+  }).join('');
+  renderAdminXPCurvePreview();
+}
+
+function renderAdminXPCurvePreview() {
+  const tbody = document.getElementById('adminXPCurvePreviewBody');
+  if (!tbody) return;
+  const { base, growth } = getAdminLevelConfig();
+  const sampleLevels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50, 70, 100];
+  
+  tbody.innerHTML = sampleLevels.map(lvl => {
+    const xpNeeded = base + (lvl - 1) * growth;
+    const totalScore = lvl * base + ((lvl * (lvl - 1)) / 2) * growth;
+    const tier = Math.min(Math.floor(lvl / 10), 4) + 1;
+    return `
+      <tr>
+        <td style="font-weight:700;color:var(--gold)">Lv.${lvl}</td>
+        <td>+${formatNumber(xpNeeded)} XP</td>
+        <td style="font-weight:700">${formatNumber(totalScore)} ⭐</td>
+        <td>Tầng ${tier}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function saveGameConfig() {
+  const inputs = document.querySelectorAll('.cfg-input');
+  const cfg = {};
+  inputs.forEach(inp => {
+    const key = inp.dataset.cfgKey, val = parseFloat(inp.value);
+    if (!isNaN(val)) cfg[key] = val;
+  });
+  localStorage.setItem(LS_GAME_CONFIG, JSON.stringify(cfg));
+  renderGameConfig();
+  showAdminToast('💾 Đã lưu cấu hình game! Người chơi phải khởi động lại game.', '#50e3a4');
+}
+
+function resetGameConfig() {
+  if (!confirm('Khôi phục tất cả cấu hình game về mặc định?')) return;
+  localStorage.removeItem(LS_GAME_CONFIG);
+  renderGameConfig();
+  showAdminToast('↩️ Đã khôi phục mặc định!', '#60b8ff');
+}
+
+// ═════════════════════════════════════════════════════════════
+// 🎁 PLAYER GIFT
+// ═════════════════════════════════════════════════════════════
+function renderGiftPlayerSelect() {
+  const sel = document.getElementById('giftPlayerSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Chọn người chơi --</option>' +
+    allUsers.map(u => `<option value="${esc(u.name)}">${esc(u.name)} (Lv.${u.level||0})</option>`).join('');
+}
+
+function giveResources() {
+  const name   = document.getElementById('giftPlayerSelect').value;
+  const coins  = parseInt(document.getElementById('giftCoins').value) || 0;
+  const water  = parseInt(document.getElementById('giftWater').value) || 0;
+  const sun    = parseInt(document.getElementById('giftSun').value)   || 0;
+  const score  = parseInt(document.getElementById('giftScore').value) || 0;
+  const result = document.getElementById('giftResult');
+
+  if (!name) { result.textContent = '❌ Chưa chọn người chơi!'; result.style.color='var(--red)'; return; }
+
+  const saveKey = `kvtm_save_${name}`;
+  const raw = localStorage.getItem(saveKey);
+  let save;
+  if (raw) {
+    try { save = JSON.parse(raw); } catch { save = {}; }
+  } else {
+    save = { coins: 50, water: 20, sun: 10, score: 0, totalPlants: 0, activeTier: 0, plots: [] };
+  }
+
+  save.coins = (save.coins || 0) + coins;
+  save.water = Math.min((save.water || 0) + water, 99);
+  save.sun   = Math.min((save.sun   || 0) + sun,   99);
+  save.score = (save.score || 0) + score;
+  save.savedAt = Date.now();
+
+  localStorage.setItem(saveKey, JSON.stringify(save));
+
+  // Update user profile score & level
+  const users = JSON.parse(localStorage.getItem(LS_USERS) || '[]');
+  const u = users.find(x => x.name === name);
+  if (u) { u.score = save.score; u.level = calcLevel(save.score); localStorage.setItem(LS_USERS, JSON.stringify(users)); }
+
+  const parts = [];
+  if (coins)  parts.push(`+${formatNumber(coins)} xu`);
+  if (water)  parts.push(`+${water} nước`);
+  if (sun)    parts.push(`+${sun} nắng`);
+  if (score)  parts.push(`+${formatNumber(score)} điểm`);
+  result.textContent = `✅ Đã tặng cho "${name}": ${parts.join(', ')}. Game sẽ cập nhật khi người chơi vào game.`;
+  result.style.color = 'var(--green)';
+  loadData();
+}
+
+// ═════════════════════════════════════════════════════════════
+// 🪴 POT EDITOR
+// ═════════════════════════════════════════════════════════════
+function renderPotEditor() {
+  let cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem(LS_POT_CONFIG) || '{}'); } catch {}
+  const tbody = document.getElementById('potEditorBody');
+  if (!tbody || typeof POT_GRADES === 'undefined') return;
+
+  tbody.innerHTML = POT_GRADES.map((def, idx) => {
+    const ov = cfg[def.id] || cfg[idx] || {};
+    const name        = ov.name        ?? def.name;
+    const upgradeCost = ov.upgradeCost !== undefined ? ov.upgradeCost : def.upgradeCost;
+    const growBonus   = ov.growBonus   ?? def.growBonus;
+    const rewardMult  = ov.rewardMult  ?? def.rewardMult;
+    const description = ov.description ?? def.description;
+
+    const isM = (ov.name !== undefined && ov.name !== def.name) ||
+                (ov.upgradeCost !== undefined && ov.upgradeCost !== def.upgradeCost) ||
+                (ov.growBonus !== undefined && ov.growBonus !== def.growBonus) ||
+                (ov.rewardMult !== undefined && ov.rewardMult !== def.rewardMult) ||
+                (ov.description !== undefined && ov.description !== def.description);
+
+    const costDisplay = def.upgradeCost === null && ov.upgradeCost === undefined
+      ? `<span style="color:var(--muted);font-size:12px">Mặc định (0)</span>`
+      : `<div class="pe-input-wrap"><span class="pe-unit">💰</span>
+          <input class="pe-input pote-input" type="number" min="0" value="${upgradeCost ?? 0}"
+            data-id="${def.id}" data-idx="${idx}" data-field="upgradeCost" data-default="${def.upgradeCost ?? 0}" oninput="markRow(this)" />
+        </div>`;
+
+    return `<tr class="plant-row${isM ? ' modified' : ''}">
+      <td style="text-align:center;font-size:22px">${def.icon}</td>
+      <td>
+        <div class="pe-field">
+          <input class="pe-input pote-input" type="text" style="width:130px" value="${esc(name)}"
+            data-id="${def.id}" data-idx="${idx}" data-field="name" data-default="${esc(def.name)}" oninput="markRow(this)" />
+        </div>
+      </td>
+      <td><div class="pe-field"><label>Giá lên cấp</label>${costDisplay}</div></td>
+      <td>
+        <div class="pe-field">
+          <label>Tăng tốc (+%)</label>
+          <div class="pe-input-wrap"><span class="pe-unit">⚡</span>
+            <input class="pe-input pote-input" type="number" min="0" step="0.1" value="${growBonus}"
+              data-id="${def.id}" data-idx="${idx}" data-field="growBonus" data-default="${def.growBonus}" oninput="markRow(this)" />
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="pe-field">
+          <label>Thưởng (×)</label>
+          <div class="pe-input-wrap"><span class="pe-unit">⭐</span>
+            <input class="pe-input pote-input" type="number" min="1" step="0.1" value="${rewardMult}"
+              data-id="${def.id}" data-idx="${idx}" data-field="rewardMult" data-default="${def.rewardMult}" oninput="markRow(this)" />
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="pe-field">
+          <input class="pe-input pote-input" type="text" style="width:100%" value="${esc(description)}"
+            data-id="${def.id}" data-idx="${idx}" data-field="description" data-default="${esc(def.description)}" oninput="markRow(this)" />
+        </div>
+      </td>
+      <td><button class="btn btn-ghost btn-sm" onclick="resetOnePot('${def.id}', ${idx})">&#x21A9;</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function savePotConfig() {
+  const inputs = document.querySelectorAll('.pote-input');
+  const cfg = {};
+  inputs.forEach(inp => {
+    const id = inp.dataset.id;
+    const field = inp.dataset.field;
+    let val;
+    if (field === 'name' || field === 'description') {
+      val = inp.value;
+    } else {
+      val = parseFloat(inp.value);
+      if (isNaN(val)) val = 0;
+    }
+    if (!cfg[id]) cfg[id] = {};
+    cfg[id][field] = val;
+  });
+  localStorage.setItem(LS_POT_CONFIG, JSON.stringify(cfg));
+  renderPotEditor();
+  showAdminToast('💾 Đã lưu cấu hình chậu!', '#50e3a4');
+}
+
+function resetAllPotConfig() {
+  if (!confirm('Khôi phục tất cả cấp độ chậu về mặc định?')) return;
+  localStorage.removeItem(LS_POT_CONFIG);
+  renderPotEditor();
+  showAdminToast('↩️ Đã khôi phục mặc định chậu!', '#60b8ff');
+}
+
+function resetOnePot(id, idx) {
+  const def = POT_GRADES[idx];
+  if (!def) return;
+  document.querySelectorAll(`.pote-input[data-id="${id}"]`).forEach(inp => {
+    const f = inp.dataset.field;
+    if (f === 'name') inp.value = def.name;
+    if (f === 'description') inp.value = def.description;
+    if (f === 'upgradeCost') inp.value = def.upgradeCost ?? 0;
+    if (f === 'growBonus') inp.value = def.growBonus;
+    if (f === 'rewardMult') inp.value = def.rewardMult;
+  });
+  document.querySelectorAll(`tr:has(.pote-input[data-id="${id}"])`).forEach(r => r.classList.remove('modified'));
+  showAdminToast(`↩️ Khôi phục ${def.name} (chưa lưu)`);
+}
+
+// ═════════════════════════════════════════════════════════════
+// 🏆 LEVEL LADDER EDITOR
+// ═════════════════════════════════════════════════════════════
+let workingLadder = [];
+
+function getActiveLadder() {
+  let cfg = null;
+  try { cfg = JSON.parse(localStorage.getItem(LS_LADDER_CONFIG)); } catch {}
+  if (Array.isArray(cfg) && cfg.length > 0) return JSON.parse(JSON.stringify(cfg));
+  if (typeof LEVEL_LADDER !== 'undefined') return JSON.parse(JSON.stringify(LEVEL_LADDER));
+  return [];
+}
+
+function renderLadderEditor() {
+  workingLadder = getActiveLadder();
+  const tbody = document.getElementById('ladderEditorBody');
+  if (!tbody) return;
+
+  const fertOptions = '<option value="">-- Không --</option>' +
+    (typeof FERTILIZERS !== 'undefined'
+      ? Object.entries(FERTILIZERS).map(([k, v]) => `<option value="${k}">${v.icon} ${v.name}</option>`).join('')
+      : '');
+
+  tbody.innerHTML = workingLadder.map((m, idx) => {
+    const selFert = m.reward?.fert || '';
+    return `
+      <tr class="plant-row" id="ladderRow_${idx}">
+        <td>
+          <input class="pe-input" type="number" min="1" max="999" value="${m.level || 1}" style="width:60px"
+            oninput="workingLadder[${idx}].level = parseInt(this.value)||1; markRow(this)" />
+        </td>
+        <td>
+          <input class="pe-input" type="text" value="${esc(m.badge || '🏆')}" style="width:36px;text-align:center"
+            oninput="workingLadder[${idx}].badge = this.value; markRow(this)" />
+        </td>
+        <td>
+          <input class="pe-input" type="text" value="${esc(m.title || '')}" style="width:100%"
+            oninput="workingLadder[${idx}].title = this.value; markRow(this)" />
+        </td>
+        <td>
+          <input class="pe-input" type="text" value="${esc(m.desc || '')}" style="width:100%"
+            oninput="workingLadder[${idx}].desc = this.value; markRow(this)" />
+        </td>
+        <td>
+          <input class="pe-input" type="text" value="${esc(m.unlock || '')}" style="width:100%"
+            oninput="workingLadder[${idx}].unlock = this.value; markRow(this)" />
+        </td>
+        <td>
+          <input class="pe-input" type="number" min="0" max="999999" value="${m.reward?.coins || 0}" style="width:80px"
+            oninput="workingLadder[${idx}].reward.coins = parseInt(this.value)||0; markRow(this)" />
+        </td>
+        <td>
+          <input class="pe-input" type="number" min="0" max="99" value="${m.reward?.water || 0}" style="width:65px"
+            oninput="workingLadder[${idx}].reward.water = parseInt(this.value)||0; markRow(this)" />
+        </td>
+        <td>
+          <input class="pe-input" type="number" min="0" max="99" value="${m.reward?.sun || 0}" style="width:65px"
+            oninput="workingLadder[${idx}].reward.sun = parseInt(this.value)||0; markRow(this)" />
+        </td>
+        <td>
+          <select class="pe-input filter-select" style="width:100%"
+            onchange="workingLadder[${idx}].reward.fert = this.value; markRow(this)">
+            <option value="">-- Không --</option>
+            ${typeof FERTILIZERS !== 'undefined'
+              ? Object.entries(FERTILIZERS).map(([k, v]) => `<option value="${k}" ${selFert === k ? 'selected' : ''}>${v.icon} ${v.name}</option>`).join('')
+              : ''}
+          </select>
+        </td>
+        <td>
+          <button class="btn btn-danger btn-sm" onclick="deleteLadderMilestone(${idx})" style="padding:4px 8px">🗑️</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function saveLadderConfig() {
+  workingLadder.sort((a, b) => (a.level || 0) - (b.level || 0));
+  localStorage.setItem(LS_LADDER_CONFIG, JSON.stringify(workingLadder));
+  renderLadderEditor();
+  showAdminToast('💾 Đã lưu cấu hình Bậc Thang Cấp Độ!', '#50e3a4');
+}
+
+function resetAllLadderConfig() {
+  if (!confirm('Khôi phục toàn bộ Bậc Thang Cấp Độ về mặc định?')) return;
+  localStorage.removeItem(LS_LADDER_CONFIG);
+  renderLadderEditor();
+  showAdminToast('↩️ Đã khôi phục Bậc Thang mặc định!', '#60b8ff');
+}
+
+function addNewLadderMilestone() {
+  const maxLv = workingLadder.length > 0 ? Math.max(...workingLadder.map(m => m.level || 0)) : 0;
+  const newLv = maxLv + 5;
+  workingLadder.push({
+    level: newLv,
+    title: `Bậc Thang Cấp ${newLv}`,
+    badge: '🌟',
+    desc: `Mốc thành tựu Level ${newLv}`,
+    unlock: 'Phần thưởng & Danh hiệu mới',
+    reward: { coins: newLv * 100, water: 50, sun: 50, fert: 'basic' }
+  });
+  saveLadderConfig();
+}
+
+function deleteLadderMilestone(idx) {
+  if (!confirm(`Xóa mốc Level ${workingLadder[idx]?.level}?`)) return;
+  workingLadder.splice(idx, 1);
+  saveLadderConfig();
+}
+</script>
+</body>
+</html>
