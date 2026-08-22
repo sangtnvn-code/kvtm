@@ -17,10 +17,11 @@ const POT_GRADES = [
     body1: '#c4804e', body2: '#8b4513', rim: '#cc8855', dirt: '#5c3a21',
     saucer: '#a05530', waveColor: 'rgba(255,255,255,0.25)',
     glowColor: null,
+    spriteCol: null, spriteRow: null,
     description: 'Chậu gốm đất nung truyền thống',
   },
 
-  // ── 1-12. NHÓM 12 CUNG HOÀNG ĐẠO (ZODIAC PET POTS) ─────────────────
+  // ── 1-12. NHÓM 12 CUNG HOÀNG ĐẠO (ZODIAC HD ART POTS) ──────────────
   {
     id: 'aries', name: 'Chậu Bạch Dương', icon: '♈', sign: '♈', mascot: 'aries',
     upgradeCost: 80,
@@ -28,6 +29,7 @@ const POT_GRADES = [
     body1: '#ff5964', body2: '#b3001b', rim: '#ff858d', dirt: '#4a0e17',
     saucer: '#8a0015', waveColor: 'rgba(255,255,255,0.45)',
     glowColor: 'rgba(255,89,100,0.6)',
+    spriteCol: 3, spriteRow: 0,
     description: 'Dũng sĩ sừng cừu đỏ lửa Bạch Dương (+35% tốc độ, ×1.35 thưởng)',
   },
   {
@@ -37,6 +39,7 @@ const POT_GRADES = [
     body1: '#52b788', body2: '#1b4332', rim: '#74c69d', dirt: '#133a27',
     saucer: '#2d6a4f', waveColor: 'rgba(255,235,160,0.5)',
     glowColor: 'rgba(82,183,136,0.65)',
+    spriteCol: 0, spriteRow: 1,
     description: 'Chiến binh mũ giáp sừng trâu kiên cường (+75% tốc độ, ×1.75 thưởng)',
   },
   {
@@ -46,6 +49,7 @@ const POT_GRADES = [
     body1: '#f72585', body2: '#b5179e', rim: '#ff70a6', dirt: '#480ca8',
     saucer: '#7209b7', waveColor: 'rgba(255,255,255,0.55)',
     glowColor: 'rgba(247,37,133,0.7)',
+    spriteCol: 2, spriteRow: 0,
     description: 'Thiên thần đôi cánh trắng bồng bềnh (+160% tốc độ, ×2.5 thưởng)',
   },
   {
@@ -55,6 +59,7 @@ const POT_GRADES = [
     body1: '#4cc9f0', body2: '#0077b6', rim: '#90e0ef', dirt: '#03045e',
     saucer: '#023e8a', waveColor: 'rgba(255,255,255,0.6)',
     glowColor: 'rgba(76,201,240,0.75)',
+    spriteCol: 1, spriteRow: 1,
     description: 'Cua mặt trăng và ngọc trai đại dương (+320% tốc độ, ×4.0 thưởng)',
   },
   {
@@ -64,6 +69,7 @@ const POT_GRADES = [
     body1: '#ffb703', body2: '#d46500', rim: '#ffea00', dirt: '#662200',
     saucer: '#b84900', waveColor: 'rgba(255,255,255,0.65)',
     glowColor: 'rgba(255,183,3,0.8)',
+    spriteCol: 0, spriteRow: 0,
     description: 'Vua sư tử bờm vàng oai vệ rừng xanh (+650% tốc độ, ×7.5 thưởng)',
   },
   {
@@ -73,6 +79,7 @@ const POT_GRADES = [
     body1: '#38b000', body2: '#007200', rim: '#70e000', dirt: '#004b23',
     saucer: '#004b23', waveColor: 'rgba(255,245,200,0.65)',
     glowColor: 'rgba(112,224,0,0.85)',
+    spriteCol: 0, spriteRow: 2,
     description: 'Nàng tiên hoa bướm dịu dàng thuần khiết (+1100% tốc độ, ×13 thưởng)',
   },
   {
@@ -82,6 +89,7 @@ const POT_GRADES = [
     body1: '#4361ee', body2: '#3f37c9', rim: '#4895ef', dirt: '#1d3557',
     saucer: '#2b2d42', waveColor: 'rgba(255,215,0,0.65)',
     glowColor: 'rgba(67,97,238,0.85)',
+    spriteCol: 1, spriteRow: 2,
     description: 'Thần cầm cán cân công lý hoàng kim (+1800% tốc độ, ×22 thưởng)',
   },
   {
@@ -91,6 +99,7 @@ const POT_GRADES = [
     body1: '#7b2cbf', body2: '#3c096c', rim: '#9d4edd', dirt: '#10002b',
     saucer: '#240046', waveColor: 'rgba(200,255,255,0.65)',
     glowColor: 'rgba(157,78,221,0.9)',
+    spriteCol: 2, spriteRow: 2,
     description: 'Hắc hiệp sĩ giáp tím & đuôi độc bọ cạp (+2800% tốc độ, ×35 thưởng)',
   },
   {
@@ -100,6 +109,7 @@ const POT_GRADES = [
     body1: '#00b4d8', body2: '#0077b6', rim: '#90e0ef', dirt: '#03045e',
     saucer: '#0096c7', waveColor: 'rgba(255,255,255,0.7)',
     glowColor: 'rgba(0,180,216,0.9)',
+    spriteCol: 1, spriteRow: 0,
     description: 'Thần cung thủ râu đỏ cưỡi gió săn mây (+4500% tốc độ, ×55 thưởng)',
   },
   {
@@ -109,6 +119,7 @@ const POT_GRADES = [
     body1: '#a37081', body2: '#533a4c', rim: '#c69aa8', dirt: '#2e1c2b',
     saucer: '#3f2238', waveColor: 'rgba(255,235,180,0.7)',
     glowColor: 'rgba(198,154,168,0.9)',
+    spriteCol: 0, spriteRow: 1,
     description: 'Dê biển thông thái trên rạn san hô cổ đại (+7000% tốc độ, ×85 thưởng)',
   },
   {
@@ -118,6 +129,7 @@ const POT_GRADES = [
     body1: '#0077b6', body2: '#03045e', rim: '#00b4d8', dirt: '#011627',
     saucer: '#023e8a', waveColor: 'rgba(255,255,255,0.75)',
     glowColor: 'rgba(0,119,182,0.95)',
+    spriteCol: 2, spriteRow: 1,
     description: 'Thần rót bình nước thiên hà vô tận (+11000% tốc độ, ×130 thưởng)',
   },
   {
@@ -127,6 +139,7 @@ const POT_GRADES = [
     body1: '#ff70a6', body2: '#ff9770', rim: '#ffd670', dirt: '#3a0ca3',
     saucer: '#e05780', waveColor: 'rgba(255,255,255,0.75)',
     glowColor: 'rgba(255,112,166,0.95)',
+    spriteCol: 3, spriteRow: 2,
     description: 'Nàng tiên cá bơi lội giữa đôi cá ngọc (+17000% tốc độ, ×200 thưởng)',
   },
 
@@ -138,6 +151,7 @@ const POT_GRADES = [
     body1: '#ffee32', body2: '#5a189a', rim: '#ffff3f', dirt: '#240046',
     saucer: '#3c096c', waveColor: 'rgba(255,255,255,0.85)',
     glowColor: 'rgba(255,238,50,0.95)',
+    spriteCol: 3, spriteRow: 1,
     description: 'Vua của các vị thần nắm giữ sấm sét cửu thiên (+26000% tốc độ, ×320 thưởng)',
   },
   {
@@ -147,6 +161,7 @@ const POT_GRADES = [
     body1: '#00f5d4', body2: '#0077b6', rim: '#72efdd', dirt: '#001845',
     saucer: '#0096c7', waveColor: 'rgba(255,255,255,0.85)',
     glowColor: 'rgba(0,245,212,0.95)',
+    spriteCol: 2, spriteRow: 1,
     description: 'Chúa tể biển khơi điều khiển bão táp đại dương (+38000% tốc độ, ×480 thưởng)',
   },
   {
@@ -156,6 +171,7 @@ const POT_GRADES = [
     body1: '#3d3a45', body2: '#121118', rim: '#8d99ae', dirt: '#08080c',
     saucer: '#1a1921', waveColor: 'rgba(180,180,220,0.7)',
     glowColor: 'rgba(141,153,174,0.9)',
+    spriteCol: 2, spriteRow: 2,
     description: 'Chúa tể âm giới thống trị kho báu lòng đất (+55000% tốc độ, ×700 thưởng)',
   },
   {
@@ -165,6 +181,7 @@ const POT_GRADES = [
     body1: '#ffb703', body2: '#fb8500', rim: '#fff3b0', dirt: '#9e2a2b',
     saucer: '#e36414', waveColor: 'rgba(255,255,255,0.85)',
     glowColor: 'rgba(255,183,3,1.0)',
+    spriteCol: 0, spriteRow: 0,
     description: 'Thần Mặt Trời rực rỡ mang ánh sáng và âm nhạc (+80000% tốc độ, ×1000 thưởng)',
   },
   {
@@ -174,6 +191,7 @@ const POT_GRADES = [
     body1: '#e8f4f8', body2: '#7090a8', rim: '#ffffff', dirt: '#3a506b',
     saucer: '#4a6572', waveColor: 'rgba(255,215,0,0.8)',
     glowColor: 'rgba(232,244,248,1.0)',
+    spriteCol: 1, spriteRow: 2,
     description: 'Nữ thần Trí Tuệ và Chiến Lược anh minh (+120000% tốc độ, ×1500 thưởng)',
   },
   {
@@ -183,6 +201,7 @@ const POT_GRADES = [
     body1: '#ff4d00', body2: '#800e00', rim: '#ff9e00', dirt: '#3d0000',
     saucer: '#660000', waveColor: 'rgba(255,230,100,0.85)',
     glowColor: 'rgba(255,77,0,1.0)',
+    spriteCol: 3, spriteRow: 0,
     description: 'Hỏa Long thần uy nung nấu vạn vật sinh sôi (+180000% tốc độ, ×2300 thưởng)',
   },
   {
@@ -192,6 +211,7 @@ const POT_GRADES = [
     body1: '#ff006e', body2: '#8338ec', rim: '#ffbe0b', dirt: '#3a0ca3',
     saucer: '#5c007a', waveColor: 'rgba(255,255,255,0.9)',
     glowColor: 'rgba(255,0,110,1.0)',
+    spriteCol: 2, spriteRow: 0,
     description: 'Phượng Hoàng Lửa bất tử hồi sinh muôn loài (+260000% tốc độ, ×3500 thưởng)',
   },
   {
@@ -201,6 +221,7 @@ const POT_GRADES = [
     body1: '#e0aaff', body2: '#3c096c', rim: '#c77dff', dirt: '#10002b',
     saucer: '#240046', waveColor: 'rgba(255,235,160,0.9)',
     glowColor: 'rgba(224,170,255,1.0)',
+    spriteCol: 1, spriteRow: 2,
     description: 'Bẻ cong không-thời gian, cây lớn trong chớp mắt (+380000% tốc độ, ×5000 thưởng)',
   },
   {
@@ -210,6 +231,7 @@ const POT_GRADES = [
     body1: '#00f5d4', body2: '#7b2cbf', rim: '#f72585', dirt: '#000000',
     saucer: '#10002b', waveColor: 'rgba(255,255,255,0.95)',
     glowColor: 'rgba(0,245,212,1.0)',
+    spriteCol: 2, spriteRow: 1,
     description: 'Hội tụ toàn bộ tinh hoa của Đa Vũ Trụ (+600000% tốc độ, ×10000 thưởng)',
   },
 ];

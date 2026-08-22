@@ -952,6 +952,12 @@ function triggerPotBounce(plot, amount = 1.32) {
   plot.springVelY = -0.06;
 }
 
+// ── HD ZODIAC POT SPRITE SHEET ────────────────────────────────────────
+const zodiacSheetImg = new Image();
+zodiacSheetImg.src = 'assets/zodiac_pots.jpg';
+let zodiacSheetLoaded = false;
+zodiacSheetImg.onload = () => { zodiacSheetLoaded = true; };
+
 // ── POTS ──────────────────────────────────────────────────────────────
 function drawCloudPots(c, ci, pos) {
   G.plots.filter(p => p.cloudIdx === ci).forEach(plot => {
@@ -967,9 +973,9 @@ function drawCloudPots(c, ci, pos) {
 function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
   const g = POT_GRADES[grade] || POT_GRADES[0];
   const s = Math.min(cloudScale, 1);
-  const PW = (CFG.POT_W || 56) * s * 1.08;
-  const PH = (CFG.POT_H || 42) * s * 1.05;
-  const topW = PW * 0.92;
+  const PW = (CFG.POT_W || 56) * s * 1.10;
+  const PH = (CFG.POT_H || 42) * s * 1.06;
+  const topW = PW * 0.94;
   const baseW = PW * 0.72;
   const rimH = PH * 0.26;
   const top = cy - PH * 0.26;
@@ -998,209 +1004,325 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
   const slotSeed = plot ? (plot.slot * 0.85 + (plot.cloudIdx || 0) * 1.6) : 0;
   const floatWave = Math.sin(frameCount * 0.045 + slotSeed) * 2.5;
   const tiltAngle = Math.sin(frameCount * 0.035 + slotSeed) * 0.015;
-  const hoverOffset = hover ? -4.5 + Math.sin(frameCount * 0.12) * 1.5 : 0;
+  const hoverOffset = hover ? -5.0 + Math.sin(frameCount * 0.12) * 1.5 : 0;
 
   // ── Transform for Squash & Stretch + Floating
   ctx.translate(cx, cy + floatWave + hoverOffset);
   ctx.rotate(tiltAngle);
-  const scX = (plot ? plot.springScaleX : 1) * (hover ? 1.06 : 1.0);
-  const scY = (plot ? plot.springScaleY : 1) * (hover ? 1.06 : 1.0);
+  const scX = (plot ? plot.springScaleX : 1) * (hover ? 1.07 : 1.0);
+  const scY = (plot ? plot.springScaleY : 1) * (hover ? 1.07 : 1.0);
   ctx.scale(scX, scY);
   ctx.translate(-cx, -cy);
 
-  // ── Contact Shadow on Cloud
+  // ── 0. Soft Multi-Layered Ambient Contact Shadow on Cloud
   const shadowSpread = (1 - (floatWave + hoverOffset) * 0.04);
   ctx.beginPath();
-  ctx.ellipse(cx, bot + 6, baseW * 1.05 * shadowSpread, Math.max(2, 6 * s * shadowSpread), 0, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(40, 15, 70, 0.26)';
+  ctx.ellipse(cx, bot + 6, baseW * 1.15 * shadowSpread, Math.max(2, 7 * s * shadowSpread), 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(35, 10, 60, 0.28)';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.ellipse(cx, bot + 4, baseW * 0.85 * shadowSpread, Math.max(1.5, 4 * s * shadowSpread), 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(20, 5, 40, 0.35)';
   ctx.fill();
 
   // ── Grade Outer Aura Glow
   if (g.glowColor) {
     const pulseGlow = 0.85 + 0.15 * Math.sin(frameCount * 0.08 + slotSeed);
     ctx.shadowColor = g.glowColor;
-    ctx.shadowBlur = (hover ? 32 : (grade >= 1 ? 22 : 12)) * pulseGlow;
+    ctx.shadowBlur = (hover ? 34 : (grade >= 1 ? 24 : 12)) * pulseGlow;
   } else if (hover) {
-    ctx.shadowColor = 'rgba(199, 125, 255, 0.65)';
-    ctx.shadowBlur = 22;
+    ctx.shadowColor = 'rgba(199, 125, 255, 0.7)';
+    ctx.shadowBlur = 24;
   }
 
-  // ── 1. Saucer Tray (Đế đĩa lót chậu ở dưới cùng)
-  const trayW = PW * 1.14;
-  const trayH = PH * 0.28;
+  // ── 🌟 AUTHENTIC HD ZODIAC SPRITE RENDERING (Ảnh nghệ thuật gốc 100% giống thật)
+  if (g.spriteCol !== null && g.spriteCol !== undefined && zodiacSheetImg.complete && zodiacSheetImg.naturalWidth > 0) {
+    const cellW = 1792 / 4;
+    const cellH = 1024 / 3;
+    const sx = g.spriteCol * cellW + 18;
+    const sy = g.spriteRow * cellH + 12;
+    const sw = cellW - 36;
+    const sh = cellH - 24;
+
+    const potDestW = 96 * s;
+    const potDestH = 82 * s;
+    const potDestX = cx - potDestW * 0.5;
+    const potDestY = cy - potDestH * 0.5 - 2 * s;
+
+    // Draw authentic HD illustration
+    ctx.drawImage(zodiacSheetImg, sx, sy, sw, sh, potDestX, potDestY, potDestW, potDestH);
+
+    // Soil Surface with Texture Specks on top
+    const dirtGrd = ctx.createRadialGradient(cx, top + rimH * 0.38, 2, cx, top + rimH * 0.38, topW * 0.42);
+    if (plant && plant.watered) {
+      dirtGrd.addColorStop(0, '#3a506b');
+      dirtGrd.addColorStop(0.5, '#1c2541');
+      dirtGrd.addColorStop(1, '#0b132b');
+    } else {
+      dirtGrd.addColorStop(0, lighten(g.dirt || '#5c3a21', 18));
+      dirtGrd.addColorStop(0.7, g.dirt || '#4a2e18');
+      dirtGrd.addColorStop(1, darken(g.dirt || '#321808', 28));
+    }
+    ctx.fillStyle = dirtGrd;
+    ctx.beginPath();
+    ctx.ellipse(cx, top + rimH * 0.38, topW * 0.42, rimH * 0.44, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Water moisture sparkle dots on soil
+    if (plant && plant.watered) {
+      const moistTime = frameCount * 0.08 + slotSeed;
+      ctx.fillStyle = 'rgba(116, 215, 255, 0.9)';
+      ctx.shadowColor = '#60d5ff';
+      ctx.shadowBlur = 6;
+      for (let i = 0; i < 3; i++) {
+        const mx = cx + Math.sin(moistTime + i * 2) * (topW * 0.24);
+        const my = top + rimH * 0.38 + Math.cos(moistTime + i * 2) * (rimH * 0.20);
+        ctx.beginPath();
+        ctx.arc(mx, my, 1.3 * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+    }
+
+    // Star Glints & Sparkling Highlights
+    const glintT = (frameCount * 0.05 + grade) % (Math.PI * 2);
+    const glintA = Math.max(0, Math.sin(glintT));
+    if (glintA > 0.05) {
+      const glintX = cx - topW * 0.36 + Math.cos(grade) * 6;
+      const glintY = top + rimH * 0.24;
+      drawSparkleStar(ctx, glintX, glintY, 3.8 * s + glintA * 3.5, glintA);
+    }
+
+    ctx.restore();
+    return;
+  }
+
+  // ── 1. Saucer Tray (Đế đĩa lót gốm sứ 3D cao cấp ở dưới cùng)
+  const trayW = PW * 1.16;
+  const trayH = PH * 0.30;
   const trayY = bot - 2;
 
-  // Tray lower body
+  // Tray lower bevel
   const trayGrd = ctx.createLinearGradient(cx - trayW / 2, trayY, cx + trayW / 2, trayY + trayH);
-  trayGrd.addColorStop(0, lighten(g.saucer || g.body2, 15));
-  trayGrd.addColorStop(0.35, hover ? lighten(g.saucer || g.body2, 35) : lighten(g.saucer || g.body2, 25));
+  trayGrd.addColorStop(0, lighten(g.saucer || g.body2, 18));
+  trayGrd.addColorStop(0.3, hover ? lighten(g.saucer || g.body2, 38) : lighten(g.saucer || g.body2, 28));
   trayGrd.addColorStop(0.7, g.saucer || g.body2);
-  trayGrd.addColorStop(1, darken(g.saucer || g.body2, 30));
+  trayGrd.addColorStop(1, darken(g.saucer || g.body2, 35));
 
   ctx.beginPath();
-  ctx.ellipse(cx, trayY + 4 * s, trayW * 0.48, trayH * 0.52, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, trayY + 4.5 * s, trayW * 0.49, trayH * 0.54, 0, 0, Math.PI * 2);
   ctx.fillStyle = trayGrd;
   ctx.fill();
 
-  // Tray rim ring (Upper lip of saucer)
+  // Tray upper rim lip
   ctx.beginPath();
   ctx.ellipse(cx, trayY, trayW * 0.52, trayH * 0.38, 0, 0, Math.PI * 2);
-  ctx.fillStyle = lighten(g.saucer || g.rim, 20);
+  ctx.fillStyle = lighten(g.saucer || g.rim, 24);
   ctx.fill();
-  ctx.strokeStyle = grade >= 1 ? 'rgba(255,255,255,0.75)' : 'rgba(255,230,160,0.5)';
-  ctx.lineWidth = 1.2 * s;
+
+  // Golden Inlay Line on Saucer
+  ctx.strokeStyle = grade >= 1 ? 'rgba(255, 225, 120, 0.85)' : 'rgba(255, 230, 160, 0.5)';
+  ctx.lineWidth = 1.4 * s;
   ctx.stroke();
 
-  // Tray sparkling dots around saucer
+  // Inlaid sparkling gemstones on saucer corners
   if (grade >= 1) {
+    const gemColors = ['#ffd700', '#00f5d4', '#ff70a6', '#ffee32'];
     for (let i = 0; i < 4; i++) {
-      const spAng = frameCount * 0.03 + i * (Math.PI / 2) + slotSeed;
-      const spX = cx + Math.cos(spAng) * (trayW * 0.45);
-      const spY = trayY + Math.sin(spAng) * (trayH * 0.26);
+      const spAng = frameCount * 0.025 + i * (Math.PI / 2) + slotSeed;
+      const spX = cx + Math.cos(spAng) * (trayW * 0.46);
+      const spY = trayY + Math.sin(spAng) * (trayH * 0.28);
+
+      ctx.save();
+      ctx.shadowColor = gemColors[i % gemColors.length];
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = gemColors[i % gemColors.length];
+      ctx.beginPath();
+      ctx.arc(spX, spY, 1.4 * s, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(spX, spY, 1.0 * s, 0, Math.PI * 2);
+      ctx.arc(spX - 0.4, spY - 0.4, 0.6 * s, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
     }
   }
 
-  // ── 2. Chubby Porcelain Pot Belly (Thân chậu tròn bầu bĩnh)
-  const bellyGrd = ctx.createRadialGradient(cx - PW * 0.15, cy - PH * 0.05, 2, cx, cy, PW * 0.65);
+  // ── 2. Chubby Porcelain Pot Belly (Thân chậu sứ tròn trĩnh, bóng gương 3D)
+  const bellyGrd = ctx.createRadialGradient(cx - PW * 0.18, cy - PH * 0.08, 2, cx, cy, PW * 0.68);
   if (grade >= 13 && (g.mascot === 'omniverse' || g.mascot === 'phoenix')) {
     // Cosmic Nebula Shifter
     const hue = (frameCount * 0.9 + slotSeed * 30) % 360;
-    bellyGrd.addColorStop(0, `hsl(${hue}, 95%, 72%)`);
-    bellyGrd.addColorStop(0.45, `hsl(${(hue + 50) % 360}, 85%, 48%)`);
+    bellyGrd.addColorStop(0, `hsl(${hue}, 95%, 75%)`);
+    bellyGrd.addColorStop(0.45, `hsl(${(hue + 50) % 360}, 85%, 50%)`);
     bellyGrd.addColorStop(1, '#080014');
   } else {
-    bellyGrd.addColorStop(0, hover ? lighten(g.body1, 30) : lighten(g.body1, 15));
-    bellyGrd.addColorStop(0.45, hover ? lighten(g.body1, 20) : g.body1);
+    bellyGrd.addColorStop(0, hover ? lighten(g.body1, 35) : lighten(g.body1, 18));
+    bellyGrd.addColorStop(0.45, hover ? lighten(g.body1, 24) : g.body1);
     bellyGrd.addColorStop(0.85, g.body2);
-    bellyGrd.addColorStop(1, darken(g.body2, 25));
+    bellyGrd.addColorStop(1, darken(g.body2, 30));
   }
 
   ctx.beginPath();
   ctx.moveTo(cx - topW * 0.48, top + rimH * 0.6);
   // Chubby rounded curve outwards
   ctx.bezierCurveTo(
-    cx - PW * 0.62, top + PH * 0.35,
+    cx - PW * 0.64, top + PH * 0.35,
     cx - baseW * 0.68, bot - PH * 0.1,
     cx - baseW * 0.44, bot
   );
-  ctx.quadraticCurveTo(cx, bot + 3 * s, cx + baseW * 0.44, bot);
+  ctx.quadraticCurveTo(cx, bot + 3.5 * s, cx + baseW * 0.44, bot);
   ctx.bezierCurveTo(
     cx + baseW * 0.68, bot - PH * 0.1,
-    cx + PW * 0.62, top + PH * 0.35,
+    cx + PW * 0.64, top + PH * 0.35,
     cx + topW * 0.48, top + rimH * 0.6
   );
   ctx.closePath();
   ctx.fillStyle = bellyGrd;
   ctx.fill();
 
-  // ── 3. Wavy Horizontal Decorative Ribbons (Họa tiết lượn sóng đặc trưng)
+  // ── 3. Multi-Layer Wavy Horizontal Decorative Ribbons (Họa tiết lượn sóng sứ tinh xảo)
   ctx.save();
-  ctx.strokeStyle = g.waveColor || 'rgba(255,255,255,0.45)';
-  ctx.lineWidth = 2.2 * s;
   for (let w = 0; w < 2; w++) {
-    const waveY = top + PH * (0.42 + w * 0.22);
-    const waveAmp = 2.5 * s;
-    const waveFreq = 0.14;
+    const waveY = top + PH * (0.40 + w * 0.24);
+    const waveAmp = 2.8 * s;
+    const waveFreq = 0.13;
+    const startX = cx - PW * (0.46 - w * 0.05);
+    const endX   = cx + PW * (0.46 - w * 0.05);
+
+    // Subtle dark wave shade beneath
     ctx.beginPath();
-    const startX = cx - PW * (0.44 - w * 0.05);
-    const endX   = cx + PW * (0.44 - w * 0.05);
+    ctx.moveTo(startX, waveY + 1.5);
+    for (let wx = startX; wx <= endX; wx += 2) {
+      const wy = waveY + 1.5 + Math.sin((wx - cx) * waveFreq + frameCount * 0.02 + w) * waveAmp;
+      ctx.lineTo(wx, wy);
+    }
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.lineWidth = 3.0 * s;
+    ctx.stroke();
+
+    // Main bright wave
+    ctx.beginPath();
     ctx.moveTo(startX, waveY);
     for (let wx = startX; wx <= endX; wx += 2) {
       const wy = waveY + Math.sin((wx - cx) * waveFreq + frameCount * 0.02 + w) * waveAmp;
       ctx.lineTo(wx, wy);
     }
+    ctx.strokeStyle = g.waveColor || 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 2.4 * s;
     ctx.stroke();
   }
   ctx.restore();
 
-  // ── 4. Specular Curved Light Reflection (Left gloss)
+  // ── 4. Dual Specular Curved Light Streaks (Ánh sáng phản chiếu bóng gương hai bên)
+  // Main Left Highlight
   ctx.save();
-  ctx.globalAlpha = hover ? 0.42 : 0.26;
-  const specGrd = ctx.createLinearGradient(cx - PW * 0.45, top, cx + PW * 0.1, bot);
+  ctx.globalAlpha = hover ? 0.46 : 0.30;
+  const specGrd = ctx.createLinearGradient(cx - PW * 0.46, top, cx + PW * 0.1, bot);
   specGrd.addColorStop(0, '#ffffff');
   specGrd.addColorStop(0.5, '#ffffff');
   specGrd.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = specGrd;
   ctx.beginPath();
-  ctx.moveTo(cx - PW * 0.34, top + rimH);
+  ctx.moveTo(cx - PW * 0.35, top + rimH);
   ctx.bezierCurveTo(
-    cx - PW * 0.46, top + PH * 0.4,
-    cx - baseW * 0.48, bot - PH * 0.15,
-    cx - baseW * 0.30, bot - 2
+    cx - PW * 0.48, top + PH * 0.4,
+    cx - baseW * 0.50, bot - PH * 0.15,
+    cx - baseW * 0.32, bot - 2
   );
-  ctx.lineTo(cx - baseW * 0.16, bot - 2);
+  ctx.lineTo(cx - baseW * 0.18, bot - 2);
   ctx.bezierCurveTo(
-    cx - baseW * 0.30, bot - PH * 0.15,
-    cx - PW * 0.25, top + PH * 0.4,
-    cx - PW * 0.20, top + rimH
+    cx - baseW * 0.32, bot - PH * 0.15,
+    cx - PW * 0.26, top + PH * 0.4,
+    cx - PW * 0.21, top + rimH
   );
   ctx.closePath();
   ctx.fill();
+
+  // Secondary Subtle Right Bounce Highlight
+  ctx.globalAlpha = hover ? 0.22 : 0.14;
+  const rightSpecGrd = ctx.createLinearGradient(cx + PW * 0.45, top, cx + PW * 0.2, bot);
+  rightSpecGrd.addColorStop(0, '#ffffff');
+  rightSpecGrd.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = rightSpecGrd;
+  ctx.beginPath();
+  ctx.ellipse(cx + PW * 0.38, cy + PH * 0.1, 2.5 * s, 10 * s, 0.2, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 
-  // ── 5. Pot Rim Collar (Miệng chậu tròn 3D)
+  // ── 5. Pot Rim Collar (Miệng chậu tròn 3D có viền vàng kim)
   ctx.shadowBlur = 0;
   const rimGrd = ctx.createLinearGradient(cx - topW / 2, top, cx + topW / 2, top + rimH);
-  rimGrd.addColorStop(0, lighten(g.rim || '#c88', 20));
-  rimGrd.addColorStop(0.3, hover ? lighten(g.rim || '#c88', 40) : lighten(g.rim || '#c88', 28));
+  rimGrd.addColorStop(0, lighten(g.rim || '#c88', 22));
+  rimGrd.addColorStop(0.3, hover ? lighten(g.rim || '#c88', 42) : lighten(g.rim || '#c88', 30));
   rimGrd.addColorStop(0.7, g.rim || '#c88');
-  rimGrd.addColorStop(1, darken(g.rim || '#c88', 20));
+  rimGrd.addColorStop(1, darken(g.rim || '#c88', 22));
 
   // Outer collar rim
   ctx.fillStyle = rimGrd;
   ctx.beginPath();
   ctx.ellipse(cx, top + rimH * 0.48, topW * 0.52, rimH * 0.65, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = grade >= 1 ? 'rgba(255,255,255,0.8)' : 'rgba(255,230,120,0.5)';
-  ctx.lineWidth = 1.2 * s;
+  ctx.strokeStyle = grade >= 1 ? 'rgba(255, 235, 140, 0.9)' : 'rgba(255, 230, 120, 0.5)';
+  ctx.lineWidth = 1.4 * s;
   ctx.stroke();
 
-  // ── 6. Soil Surface (Lòng đất trồng cây màu mỡ)
+  // ── 6. Soil Surface with Texture Specks (Lòng đất dinh dưỡng màu mỡ)
   const dirtGrd = ctx.createRadialGradient(cx, top + rimH * 0.42, 2, cx, top + rimH * 0.42, topW * 0.44);
   if (plant && plant.watered) {
     dirtGrd.addColorStop(0, '#3a506b');
     dirtGrd.addColorStop(0.5, '#1c2541');
     dirtGrd.addColorStop(1, '#0b132b');
   } else {
-    dirtGrd.addColorStop(0, lighten(g.dirt || '#5c3a21', 15));
+    dirtGrd.addColorStop(0, lighten(g.dirt || '#5c3a21', 18));
     dirtGrd.addColorStop(0.7, g.dirt || '#4a2e18');
-    dirtGrd.addColorStop(1, darken(g.dirt || '#321808', 25));
+    dirtGrd.addColorStop(1, darken(g.dirt || '#321808', 28));
   }
   ctx.fillStyle = dirtGrd;
   ctx.beginPath();
   ctx.ellipse(cx, top + rimH * 0.44, topW * 0.44, rimH * 0.48, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Water moisture sparkle dots on soil
+  // Soil Nutrient Granules (Hạt đất dinh dưỡng li ti)
+  ctx.fillStyle = plant && plant.watered ? 'rgba(100, 200, 255, 0.4)' : 'rgba(200, 150, 100, 0.3)';
+  for (let i = 0; i < 5; i++) {
+    const gx = cx + Math.cos(i * 1.3 + slotSeed) * (topW * 0.28);
+    const gy = top + rimH * 0.44 + Math.sin(i * 1.3 + slotSeed) * (rimH * 0.22);
+    ctx.beginPath();
+    ctx.arc(gx, gy, 0.9 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Water Moisture Ripples & Sparkle Dots on Soil
   if (plant && plant.watered) {
     const moistTime = frameCount * 0.08 + slotSeed;
-    ctx.fillStyle = 'rgba(116, 215, 255, 0.85)';
+    ctx.fillStyle = 'rgba(116, 215, 255, 0.9)';
+    ctx.shadowColor = '#60d5ff';
+    ctx.shadowBlur = 4;
     for (let i = 0; i < 3; i++) {
       const mx = cx + Math.sin(moistTime + i * 2) * (topW * 0.26);
       const my = top + rimH * 0.44 + Math.cos(moistTime + i * 2) * (rimH * 0.22);
       ctx.beginPath();
-      ctx.arc(mx, my, 1.2 * s, 0, Math.PI * 2);
+      ctx.arc(mx, my, 1.3 * s, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.shadowBlur = 0;
   }
 
-  // ── 7. Detailed 3D Chibi Mascot Illustration (Nhân vật Chibi nổi phía trước chậu)
+  // ── 7. Detailed 3D Chibi Mascot Illustration (Nhân vật Chibi tinh xảo ôm trọn thân chậu)
   if (grade >= 1 && g.mascot) {
     drawChibiMascot(ctx, cx, cy + PH * 0.12, g.mascot, s, frameCount + slotSeed * 10);
   }
 
-  // ── 8. Star Glints & Sparkling Highlights
+  // ── 8. Star Glints & Sparkling Highlights on Pot Rim
   if (grade >= 1) {
     const glintT = (frameCount * 0.05 + grade) % (Math.PI * 2);
     const glintA = Math.max(0, Math.sin(glintT));
     if (glintA > 0.05) {
       const glintX = cx - topW * 0.36 + Math.cos(grade) * 6;
-      const glintY = top + rimH * 0.3;
-      drawSparkleStar(ctx, glintX, glintY, 3.5 * s + glintA * 3, glintA);
+      const glintY = top + rimH * 0.28;
+      drawSparkleStar(ctx, glintX, glintY, 3.8 * s + glintA * 3.5, glintA);
     }
   }
 
@@ -1208,104 +1330,173 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
 }
 
 /**
- * Vẽ nhân vật Chibi Hoàng Đạo / Thần Thoại 3D lớn hơn, ôm và bao quanh thân chậu
+ * Vẽ nhân vật Chibi Hoàng Đạo / Thần Thoại 3D ngồi vắt chân trên đĩa lót, ôm chậu, chớp mắt & hoạt ảnh sống động
  */
 function drawChibiMascot(ctx, cx, cy, mascot, s, time) {
   ctx.save();
   const mX = cx;
   const mY = cy;
 
-  // Mascot scale (larger and wrapping around pot)
-  const sc = s * 1.55;
-  const mBounce = Math.sin(time * 0.08) * 1.8 * s;
-  ctx.translate(mX, mY + mBounce);
+  // Mascot scale & natural breathing oscillation
+  const sc = s * 1.62;
+  const breath = Math.sin(time * 0.07) * 1.6 * s;
+  const sway = Math.sin(time * 0.04) * 0.035;
+  ctx.translate(mX, mY + breath);
+  ctx.rotate(sway);
+
+  // Natural Blinking Anime Eyes Simulation (Chớp mắt tự nhiên)
+  const blinkCycle = (time * 0.04) % 7;
+  const isBlink = blinkCycle < 0.22;
 
   switch (mascot) {
     case 'leo': {
-      // 🦁 Leo — Chibi Vua Sư Tử Bờm Vàng ôm chậu
-      // 1. Lush Lion Mane (Bờm sư tử lớn xòe rộng bao quanh chậu)
+      // 🦁 Leo — Chibi Vua Sư Tử Ngồi Vắt Chân Lên Đĩa Lót Chậu
+      const tailWag = Math.sin(time * 0.16) * 0.25;
+
+      // 1. Animated Royal Lion Tail (Đuôi sư tử đung đưa sau chậu)
+      ctx.save();
+      ctx.translate(-14 * sc, 10 * sc);
+      ctx.rotate(tailWag);
+      ctx.strokeStyle = '#ffa200';
+      ctx.lineWidth = 3.5 * sc;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(-10 * sc, -4 * sc, -14 * sc, -12 * sc);
+      ctx.stroke();
       ctx.fillStyle = '#ff7b00';
       ctx.beginPath();
-      for (let i = 0; i < 10; i++) {
-        const ang = (i / 10) * Math.PI * 2;
-        ctx.arc(Math.cos(ang) * 15 * sc, -4 * sc + Math.sin(ang) * 13 * sc, 6.5 * sc, 0, Math.PI * 2);
+      ctx.arc(-14 * sc, -12 * sc, 4.5 * sc, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // 2. Lush Lion Mane (Bờm sư tử dày dặn xòe rộng bao quanh chậu)
+      ctx.fillStyle = '#ff7b00';
+      ctx.beginPath();
+      for (let i = 0; i < 12; i++) {
+        const ang = (i / 12) * Math.PI * 2;
+        const maneBreath = Math.sin(time * 0.1 + i) * 0.8 * sc;
+        ctx.arc(Math.cos(ang) * (15 * sc + maneBreath), -4 * sc + Math.sin(ang) * (13 * sc + maneBreath), 6.5 * sc, 0, Math.PI * 2);
       }
       ctx.fill();
 
-      // Inner golden mane
+      // Inner golden mane highlights
       ctx.fillStyle = '#ffa200';
       ctx.beginPath();
       for (let i = 0; i < 8; i++) {
-        const ang = (i / 8) * Math.PI * 2 + 0.3;
+        const ang = (i / 8) * Math.PI * 2 + 0.26;
         ctx.arc(Math.cos(ang) * 11 * sc, -4 * sc + Math.sin(ang) * 10 * sc, 5.0 * sc, 0, Math.PI * 2);
       }
       ctx.fill();
 
-      // 2. Chibi Face
+      // 3. Chibi Face
       ctx.fillStyle = '#ffe5b4';
       ctx.beginPath();
-      ctx.arc(0, -4 * sc, 9.5 * sc, 0, Math.PI * 2);
+      ctx.arc(0, -4 * sc, 9.8 * sc, 0, Math.PI * 2);
       ctx.fill();
 
-      // 3. Lion Ears
+      // 4. Ears with Cute Wiggle
+      const earWig = Math.sin(time * 0.12) * 0.1;
       ctx.fillStyle = '#ff9100';
       ctx.beginPath();
-      ctx.arc(-8 * sc, -12 * sc, 3.8 * sc, 0, Math.PI * 2);
-      ctx.arc(8 * sc, -12 * sc, 3.8 * sc, 0, Math.PI * 2);
+      ctx.arc(-8.5 * sc, -12 * sc + earWig * sc, 4.0 * sc, 0, Math.PI * 2);
+      ctx.arc(8.5 * sc, -12 * sc - earWig * sc, 4.0 * sc, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#ffe5b4';
+      ctx.fillStyle = '#ffb3c6';
       ctx.beginPath();
-      ctx.arc(-8 * sc, -12 * sc, 2.0 * sc, 0, Math.PI * 2);
-      ctx.arc(8 * sc, -12 * sc, 2.0 * sc, 0, Math.PI * 2);
+      ctx.arc(-8.5 * sc, -12 * sc + earWig * sc, 2.2 * sc, 0, Math.PI * 2);
+      ctx.arc(8.5 * sc, -12 * sc - earWig * sc, 2.2 * sc, 0, Math.PI * 2);
       ctx.fill();
 
-      // 4. Shiny Big Eyes
-      ctx.fillStyle = '#3a1500';
-      ctx.beginPath();
-      ctx.arc(-3.8 * sc, -4.5 * sc, 2.3 * sc, 0, Math.PI * 2);
-      ctx.arc(3.8 * sc, -4.5 * sc, 2.3 * sc, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(-4.5 * sc, -5.2 * sc, 1.0 * sc, 0, Math.PI * 2);
-      ctx.arc(3.1 * sc, -5.2 * sc, 1.0 * sc, 0, Math.PI * 2);
-      ctx.fill();
+      // 5. Anime Eyes with Blinking
+      if (isBlink) {
+        // Cute smiling closed eyes ⌒ ⌒
+        ctx.strokeStyle = '#3a1500';
+        ctx.lineWidth = 1.6 * sc;
+        ctx.beginPath();
+        ctx.arc(-4 * sc, -4 * sc, 2.2 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.arc(4 * sc, -4 * sc, 2.2 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.stroke();
+      } else {
+        // Big round shiny anime eyes with double catchlights
+        ctx.fillStyle = '#3a1500';
+        ctx.beginPath();
+        ctx.arc(-3.8 * sc, -4.5 * sc, 2.5 * sc, 0, Math.PI * 2);
+        ctx.arc(3.8 * sc, -4.5 * sc, 2.5 * sc, 0, Math.PI * 2);
+        ctx.fill();
+        // Catchlights
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-4.5 * sc, -5.2 * sc, 1.1 * sc, 0, Math.PI * 2);
+        ctx.arc(3.1 * sc, -5.2 * sc, 1.1 * sc, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(-3.2 * sc, -3.8 * sc, 0.6 * sc, 0, Math.PI * 2);
+        ctx.arc(4.4 * sc, -3.8 * sc, 0.6 * sc, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
-      // 5. Cute Smile & Cheek Blush
+      // 6. Cute Smile & Blush
       ctx.fillStyle = '#ff6b6b';
       ctx.beginPath();
       ctx.arc(-6 * sc, -1.5 * sc, 2.2 * sc, 0, Math.PI * 2);
       ctx.arc(6 * sc, -1.5 * sc, 2.2 * sc, 0, Math.PI * 2);
       ctx.fill();
-
-      // 6. Paws Wrapping around Pot Belly
-      ctx.fillStyle = '#ffa200';
+      ctx.fillStyle = '#7a2200';
       ctx.beginPath();
-      ctx.arc(-11 * sc, 3 * sc, 3.5 * sc, 0, Math.PI * 2);
-      ctx.arc(11 * sc, 3 * sc, 3.5 * sc, 0, Math.PI * 2);
+      ctx.arc(0, -3.0 * sc, 0.8 * sc, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = '#7a2200';
+      ctx.lineWidth = 0.8 * sc;
+      ctx.beginPath();
+      ctx.arc(0, -2.0 * sc, 1.6 * sc, 0.1, Math.PI - 0.1);
+      ctx.stroke();
 
-      // 7. Body & Royal Golden Staff
+      // 7. Paws Grasping Pot Belly & Torso
       ctx.fillStyle = '#ffb703';
       ctx.beginPath();
-      ctx.arc(0, 6.5 * sc, 6 * sc, 0, Math.PI * 2);
+      ctx.arc(0, 6.5 * sc, 6.5 * sc, 0, Math.PI * 2);
       ctx.fill();
+
+      // Arms embracing pot
+      ctx.fillStyle = '#ffa200';
+      ctx.beginPath();
+      ctx.arc(-11 * sc, 2.5 * sc, 3.8 * sc, 0, Math.PI * 2);
+      ctx.arc(11 * sc, 2.5 * sc, 3.8 * sc, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffb3c6';
+      ctx.beginPath();
+      ctx.arc(-11 * sc, 2.5 * sc, 1.8 * sc, 0, Math.PI * 2);
+      ctx.arc(11 * sc, 2.5 * sc, 1.8 * sc, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 8. Sitting Legs Dangling Over Saucer Tray (Chân vắt lên đĩa lót)
+      ctx.fillStyle = '#ffa200';
+      ctx.beginPath();
+      // Left foot resting on saucer
+      ctx.ellipse(-6 * sc, 13 * sc, 3.8 * sc, 2.4 * sc, -0.2, 0, Math.PI * 2);
+      // Right foot resting on saucer
+      ctx.ellipse(6 * sc, 13 * sc, 3.8 * sc, 2.4 * sc, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffb3c6';
+      ctx.beginPath();
+      ctx.arc(-6 * sc, 13 * sc, 1.6 * sc, 0, Math.PI * 2);
+      ctx.arc(6 * sc, 13 * sc, 1.6 * sc, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 9. Royal Staff with Pulsing Star Sparkles
       ctx.strokeStyle = '#ffd700';
       ctx.lineWidth = 2 * sc;
       ctx.beginPath();
-      ctx.moveTo(9 * sc, 0);
-      ctx.lineTo(9 * sc, 12 * sc);
+      ctx.moveTo(11 * sc, 0);
+      ctx.lineTo(11 * sc, 14 * sc);
       ctx.stroke();
-      ctx.fillStyle = '#ffd700';
-      ctx.beginPath();
-      ctx.arc(9 * sc, -1 * sc, 2.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
+      drawSparkleStar(ctx, 11 * sc, -1 * sc, 4.5 * sc + Math.sin(time * 0.1) * 1.5, 1.0);
       break;
     }
 
     case 'sagittarius': {
-      // 🏹 Sagittarius — Thần Cung Thủ Râu Đỏ Cưỡi Gió
-      // 1. Winged Golden Tiara (Mũ miện cánh vàng lớn)
+      // 🏹 Sagittarius — Thần Cung Thủ Ngồi Vắt Chân & Giương Cung Thần
+      // 1. Winged Golden Tiara with Sapphire
       ctx.fillStyle = '#ffd700';
       ctx.beginPath();
       ctx.moveTo(-14 * sc, -14 * sc);
@@ -1318,142 +1509,209 @@ function drawChibiMascot(ctx, cx, cy, mascot, s, time) {
       ctx.closePath();
       ctx.fill();
 
+      // Center sapphire
+      ctx.fillStyle = '#00b4d8';
+      ctx.beginPath();
+      ctx.arc(0, -12 * sc, 2.4 * sc, 0, Math.PI * 2);
+      ctx.fill();
+
       // 2. Chibi Face
       ctx.fillStyle = '#fcd5b5';
       ctx.beginPath();
-      ctx.arc(0, -3.5 * sc, 9.5 * sc, 0, Math.PI * 2);
+      ctx.arc(0, -3.5 * sc, 9.8 * sc, 0, Math.PI * 2);
       ctx.fill();
 
-      // 3. Iconic Big Red Beard (Râu đỏ bồng bềnh như ảnh)
+      // 3. Flowing Red Beard Blowing in the Wind
+      const beardWind = Math.sin(time * 0.12) * 1.5 * sc;
       ctx.fillStyle = '#d00000';
       ctx.beginPath();
       ctx.moveTo(-7 * sc, -1.5 * sc);
-      ctx.quadraticCurveTo(0, 9.5 * sc, 7 * sc, -1.5 * sc);
-      ctx.quadraticCurveTo(0, 13 * sc, -7 * sc, -1.5 * sc);
+      ctx.quadraticCurveTo(beardWind, 10 * sc, 7 * sc, -1.5 * sc);
+      ctx.quadraticCurveTo(beardWind, 14 * sc, -7 * sc, -1.5 * sc);
       ctx.fill();
 
-      // 4. Heroic Eyes
-      ctx.fillStyle = '#1d3557';
-      ctx.beginPath();
-      ctx.arc(-3.6 * sc, -4.5 * sc, 2.2 * sc, 0, Math.PI * 2);
-      ctx.arc(3.6 * sc, -4.5 * sc, 2.2 * sc, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(-4.2 * sc, -5.2 * sc, 0.9 * sc, 0, Math.PI * 2);
-      ctx.arc(3.0 * sc, -5.2 * sc, 0.9 * sc, 0, Math.PI * 2);
-      ctx.fill();
+      // 4. Hero Eyes with Blinking
+      if (isBlink) {
+        ctx.strokeStyle = '#1d3557';
+        ctx.lineWidth = 1.6 * sc;
+        ctx.beginPath();
+        ctx.arc(-3.6 * sc, -4 * sc, 2.2 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.arc(3.6 * sc, -4 * sc, 2.2 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = '#1d3557';
+        ctx.beginPath();
+        ctx.arc(-3.6 * sc, -4.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.arc(3.6 * sc, -4.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-4.2 * sc, -5.2 * sc, 1.0 * sc, 0, Math.PI * 2);
+        ctx.arc(3.0 * sc, -5.2 * sc, 1.0 * sc, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
-      // 5. Cyan Tunic Wrapping & Golden Bow
+      // 5. Cyan Tunic & Sitting Legs on Saucer
       ctx.fillStyle = '#48cae4';
       ctx.beginPath();
       ctx.arc(0, 6.5 * sc, 6.5 * sc, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.strokeStyle = '#ffd700';
-      ctx.lineWidth = 2.2 * sc;
+      // Boots resting on saucer
+      ctx.fillStyle = '#7a3b00';
       ctx.beginPath();
-      ctx.arc(11 * sc, 1 * sc, 9 * sc, -Math.PI * 0.45, Math.PI * 0.45);
+      ctx.ellipse(-6 * sc, 13.5 * sc, 4.0 * sc, 2.2 * sc, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(6 * sc, 13.5 * sc, 4.0 * sc, 2.2 * sc, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 6. Golden Bow with Energy Arrow
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 2.4 * sc;
+      ctx.beginPath();
+      ctx.arc(12 * sc, 1 * sc, 10 * sc, -Math.PI * 0.45, Math.PI * 0.45);
       ctx.stroke();
+
+      // Pulsing energy star
+      drawSparkleStar(ctx, 17 * sc, 1 * sc, 4 * sc + Math.sin(time * 0.15) * 1.5, 1.0);
       break;
     }
 
     case 'gemini': {
-      // 👼 Gemini — Thiên Thần Sinh Đôi Đôi Cánh Trắng Xòe Rộng
-      // 1. Big Spreading Angel Wings (Cánh trắng xòe rộng ôm lấy chậu)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-      ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-      ctx.shadowBlur = 10;
+      // 👼 Gemini — Thiên Thần Sinh Đôi Ngồi Vắt Chân & Vỗ Cánh Thiên Thần
+      const wingFlap = Math.sin(time * 0.1) * 0.25;
+
+      // 1. Spreading Layered Angel Wings with Live Flapping
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+      ctx.shadowBlur = 14;
       ctx.beginPath();
-      ctx.ellipse(-13 * sc, -3 * sc, 9 * sc, 5 * sc, -Math.PI * 0.28, 0, Math.PI * 2);
-      ctx.ellipse(13 * sc, -3 * sc, 9 * sc, 5 * sc, Math.PI * 0.28, 0, Math.PI * 2);
+      ctx.ellipse(-14 * sc, -3 * sc, 10 * sc, 6 * sc, -Math.PI * 0.28 + wingFlap, 0, Math.PI * 2);
+      ctx.ellipse(14 * sc, -3 * sc, 10 * sc, 6 * sc, Math.PI * 0.28 - wingFlap, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
+      ctx.restore();
 
-      // 2. Fluffy Blonde Curly Hair
+      // 2. Fluffy Blonde Hair
       ctx.fillStyle = '#ffeaa7';
       ctx.beginPath();
       ctx.arc(0, -6 * sc, 11 * sc, 0, Math.PI * 2);
-      ctx.arc(-8 * sc, -5 * sc, 5 * sc, 0, Math.PI * 2);
-      ctx.arc(8 * sc, -5 * sc, 5 * sc, 0, Math.PI * 2);
+      ctx.arc(-8 * sc, -5 * sc, 5.5 * sc, 0, Math.PI * 2);
+      ctx.arc(8 * sc, -5 * sc, 5.5 * sc, 0, Math.PI * 2);
       ctx.fill();
 
-      // 3. Cute Chibi Face
+      // 3. Cute Face
       ctx.fillStyle = '#ffe5d9';
       ctx.beginPath();
-      ctx.arc(0, -3 * sc, 9 * sc, 0, Math.PI * 2);
+      ctx.arc(0, -3 * sc, 9.2 * sc, 0, Math.PI * 2);
       ctx.fill();
 
       // 4. Golden Angel Halo
       ctx.strokeStyle = '#ffd700';
-      ctx.lineWidth = 2 * sc;
+      ctx.lineWidth = 2.2 * sc;
       ctx.beginPath();
-      ctx.ellipse(0, -15 * sc, 9 * sc, 3 * sc, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, -15 * sc + Math.sin(time * 0.08) * 1.2 * sc, 9 * sc, 3 * sc, 0, 0, Math.PI * 2);
       ctx.stroke();
 
-      // 5. Big Sparkling Blue Eyes & Blush
-      ctx.fillStyle = '#0984e3';
-      ctx.beginPath();
-      ctx.arc(-3.6 * sc, -4 * sc, 2.3 * sc, 0, Math.PI * 2);
-      ctx.arc(3.6 * sc, -4 * sc, 2.3 * sc, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(-4.3 * sc, -4.8 * sc, 1.0 * sc, 0, Math.PI * 2);
-      ctx.arc(2.9 * sc, -4.8 * sc, 1.0 * sc, 0, Math.PI * 2);
-      ctx.fill();
+      // 5. Anime Eyes with Blinking
+      if (isBlink) {
+        ctx.strokeStyle = '#0984e3';
+        ctx.lineWidth = 1.6 * sc;
+        ctx.beginPath();
+        ctx.arc(-3.6 * sc, -3.8 * sc, 2.2 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.arc(3.6 * sc, -3.8 * sc, 2.2 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = '#0984e3';
+        ctx.beginPath();
+        ctx.arc(-3.6 * sc, -4 * sc, 2.5 * sc, 0, Math.PI * 2);
+        ctx.arc(3.6 * sc, -4 * sc, 2.5 * sc, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-4.3 * sc, -4.8 * sc, 1.1 * sc, 0, Math.PI * 2);
+        ctx.arc(2.9 * sc, -4.8 * sc, 1.1 * sc, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       ctx.fillStyle = '#ff7675';
       ctx.beginPath();
-      ctx.arc(-5.5 * sc, -1 * sc, 2 * sc, 0, Math.PI * 2);
-      ctx.arc(5.5 * sc, -1 * sc, 2 * sc, 0, Math.PI * 2);
+      ctx.arc(-5.5 * sc, -1 * sc, 2.2 * sc, 0, Math.PI * 2);
+      ctx.arc(5.5 * sc, -1 * sc, 2.2 * sc, 0, Math.PI * 2);
       ctx.fill();
 
-      // Arms embracing the pot
+      // 6. Sitting Robe & Little Angel Feet on Saucer
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 6 * sc, 6.2 * sc, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cute feet dangling on saucer
       ctx.fillStyle = '#ffe5d9';
       ctx.beginPath();
-      ctx.arc(-8 * sc, 3 * sc, 3 * sc, 0, Math.PI * 2);
-      ctx.arc(8 * sc, 3 * sc, 3 * sc, 0, Math.PI * 2);
+      ctx.ellipse(-5 * sc, 13 * sc, 3.2 * sc, 2.0 * sc, -0.15, 0, Math.PI * 2);
+      ctx.ellipse(5 * sc, 13 * sc, 3.2 * sc, 2.0 * sc, 0.15, 0, Math.PI * 2);
       ctx.fill();
       break;
     }
 
     case 'aries': {
-      // ♈ Aries — Dũng Sĩ Sừng Cừu Lửa Vàng
-      // Golden Ram Horns Curling
+      // ♈ Aries — Dũng Sĩ Sừng Cừu Ngồi Vắt Chân
       ctx.fillStyle = '#ffd700';
       ctx.beginPath();
-      ctx.arc(-12 * sc, -8 * sc, 6 * sc, 0, Math.PI * 2);
-      ctx.arc(12 * sc, -8 * sc, 6 * sc, 0, Math.PI * 2);
+      ctx.arc(-12 * sc, -8 * sc, 6.5 * sc, 0, Math.PI * 2);
+      ctx.arc(12 * sc, -8 * sc, 6.5 * sc, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#cc8800';
       ctx.beginPath();
-      ctx.arc(-12 * sc, -8 * sc, 3.5 * sc, 0, Math.PI * 2);
-      ctx.arc(12 * sc, -8 * sc, 3.5 * sc, 0, Math.PI * 2);
+      ctx.arc(-12 * sc, -8 * sc, 3.8 * sc, 0, Math.PI * 2);
+      ctx.arc(12 * sc, -8 * sc, 3.8 * sc, 0, Math.PI * 2);
       ctx.fill();
 
-      // Red Flame Helmet
+      // Flame Helmet
       ctx.fillStyle = '#e63946';
       ctx.beginPath();
       ctx.arc(0, -4.5 * sc, 10.5 * sc, 0, Math.PI * 2);
       ctx.fill();
 
-      // Face & Eyes
+      // Face
       ctx.fillStyle = '#ffe5d9';
       ctx.beginPath();
       ctx.arc(0, -2.5 * sc, 8.5 * sc, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = '#b7094c';
+      // Eyes
+      if (isBlink) {
+        ctx.strokeStyle = '#b7094c';
+        ctx.lineWidth = 1.6 * sc;
+        ctx.beginPath();
+        ctx.arc(-3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.arc(3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = '#b7094c';
+        ctx.beginPath();
+        ctx.arc(-3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.arc(3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-4.1 * sc, -4.1 * sc, 0.9 * sc, 0, Math.PI * 2);
+        ctx.arc(2.9 * sc, -4.1 * sc, 0.9 * sc, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Sitting armored legs on saucer
+      ctx.fillStyle = '#ffd700';
       ctx.beginPath();
-      ctx.arc(-3.5 * sc, -3.5 * sc, 2.2 * sc, 0, Math.PI * 2);
-      ctx.arc(3.5 * sc, -3.5 * sc, 2.2 * sc, 0, Math.PI * 2);
+      ctx.ellipse(-6 * sc, 13 * sc, 3.6 * sc, 2.2 * sc, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(6 * sc, 13 * sc, 3.6 * sc, 2.2 * sc, 0.2, 0, Math.PI * 2);
       ctx.fill();
       break;
     }
 
     case 'taurus': {
-      // ♉ Taurus — Chiến Binh Mũ Giáp Sừng Bò Xanh
+      // ♉ Taurus — Chiến Binh Giáp Xanh Ngồi Vắt Chân
       ctx.fillStyle = '#ffd700';
       ctx.beginPath();
       ctx.moveTo(-15 * sc, -15 * sc); ctx.lineTo(-7 * sc, -6 * sc); ctx.lineTo(-12 * sc, -3 * sc);
@@ -1470,20 +1728,38 @@ function drawChibiMascot(ctx, cx, cy, mascot, s, time) {
       ctx.arc(0, -2.5 * sc, 8.5 * sc, 0, Math.PI * 2);
       ctx.fill();
 
+      // Eyes
+      if (isBlink) {
+        ctx.strokeStyle = '#1b4332';
+        ctx.lineWidth = 1.6 * sc;
+        ctx.beginPath();
+        ctx.arc(-3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.arc(3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = '#1b4332';
+        ctx.beginPath();
+        ctx.arc(-3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.arc(3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Armored green boots on saucer
       ctx.fillStyle = '#1b4332';
       ctx.beginPath();
-      ctx.arc(-3.5 * sc, -3.5 * sc, 2.2 * sc, 0, Math.PI * 2);
-      ctx.arc(3.5 * sc, -3.5 * sc, 2.2 * sc, 0, Math.PI * 2);
+      ctx.ellipse(-6 * sc, 13 * sc, 3.8 * sc, 2.2 * sc, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(6 * sc, 13 * sc, 3.8 * sc, 2.2 * sc, 0.2, 0, Math.PI * 2);
       ctx.fill();
       break;
     }
 
     case 'cancer': {
-      // ♋ Cancer — Nàng Tiên Biển Càng Cua Vàng
+      // ♋ Cancer — Nàng Tiên Càng Cua Vàng
+      const clawSnap = Math.sin(time * 0.14) * 0.15;
       ctx.fillStyle = '#ffd166';
       ctx.beginPath();
-      ctx.arc(-12 * sc, -3 * sc, 5.5 * sc, 0, Math.PI * 2);
-      ctx.arc(12 * sc, -3 * sc, 5.5 * sc, 0, Math.PI * 2);
+      ctx.arc(-12.5 * sc, -3 * sc + clawSnap * sc, 6.0 * sc, 0, Math.PI * 2);
+      ctx.arc(12.5 * sc, -3 * sc - clawSnap * sc, 6.0 * sc, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = '#00b4d8';
@@ -1496,16 +1772,32 @@ function drawChibiMascot(ctx, cx, cy, mascot, s, time) {
       ctx.arc(0, -2.5 * sc, 8.5 * sc, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = '#023e8a';
+      if (isBlink) {
+        ctx.strokeStyle = '#023e8a';
+        ctx.lineWidth = 1.6 * sc;
+        ctx.beginPath();
+        ctx.arc(-3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.arc(3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = '#023e8a';
+        ctx.beginPath();
+        ctx.arc(-3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.arc(3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Sitting feet on saucer
+      ctx.fillStyle = '#ffe5d9';
       ctx.beginPath();
-      ctx.arc(-3.5 * sc, -3.5 * sc, 2.2 * sc, 0, Math.PI * 2);
-      ctx.arc(3.5 * sc, -3.5 * sc, 2.2 * sc, 0, Math.PI * 2);
+      ctx.ellipse(-5 * sc, 13 * sc, 3.2 * sc, 2.0 * sc, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(5 * sc, 13 * sc, 3.2 * sc, 2.0 * sc, 0.2, 0, Math.PI * 2);
       ctx.fill();
       break;
     }
 
     case 'virgo': {
-      // ♍ Virgo — Nàng Tiên Hoa Tím Xòe Cánh
+      // ♍ Virgo — Nàng Tiên Hoa Tím Thuần Khiết
       ctx.fillStyle = '#c77dff';
       ctx.beginPath();
       ctx.arc(0, -5 * sc, 11.5 * sc, 0, Math.PI * 2);
@@ -1523,8 +1815,31 @@ function drawChibiMascot(ctx, cx, cy, mascot, s, time) {
       ctx.fill();
       ctx.fillStyle = '#ff70a6';
       ctx.beginPath();
-      ctx.arc(-5 * sc, -11 * sc, 2.5 * sc, 0, Math.PI * 2);
-      ctx.arc(5 * sc, -11 * sc, 2.5 * sc, 0, Math.PI * 2);
+      ctx.arc(-5 * sc, -11 * sc, 3.0 * sc, 0, Math.PI * 2);
+      ctx.arc(0, -12 * sc, 3.2 * sc, 0, Math.PI * 2);
+      ctx.arc(5 * sc, -11 * sc, 3.0 * sc, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (isBlink) {
+        ctx.strokeStyle = '#5a189a';
+        ctx.lineWidth = 1.6 * sc;
+        ctx.beginPath();
+        ctx.arc(-3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.arc(3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = '#5a189a';
+        ctx.beginPath();
+        ctx.arc(-3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.arc(3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Fairy feet on saucer
+      ctx.fillStyle = '#ffe5d9';
+      ctx.beginPath();
+      ctx.ellipse(-5 * sc, 13 * sc, 3.2 * sc, 2.0 * sc, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(5 * sc, 13 * sc, 3.2 * sc, 2.0 * sc, 0.2, 0, Math.PI * 2);
       ctx.fill();
       break;
     }
@@ -1542,20 +1857,36 @@ function drawChibiMascot(ctx, cx, cy, mascot, s, time) {
       ctx.arc(0, -2.5 * sc, 8.5 * sc, 0, Math.PI * 2);
       ctx.fill();
 
-      // Golden Trident
+      if (!isBlink) {
+        ctx.fillStyle = '#03045e';
+        ctx.beginPath();
+        ctx.arc(-3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.arc(3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Golden Trident with Pulsing Light
       ctx.strokeStyle = '#ffd700';
       ctx.lineWidth = 2.4 * sc;
       ctx.beginPath();
-      ctx.moveTo(10 * sc, 12 * sc); ctx.lineTo(10 * sc, -10 * sc);
+      ctx.moveTo(10 * sc, 14 * sc); ctx.lineTo(10 * sc, -10 * sc);
       ctx.moveTo(6 * sc, -6 * sc); ctx.lineTo(14 * sc, -6 * sc);
       ctx.moveTo(6 * sc, -10 * sc); ctx.lineTo(6 * sc, -6 * sc);
       ctx.moveTo(14 * sc, -10 * sc); ctx.lineTo(14 * sc, -6 * sc);
       ctx.stroke();
+      drawSparkleStar(ctx, 10 * sc, -10 * sc, 3.5 * sc + Math.sin(time * 0.12) * 1.5, 1.0);
+
+      // Sitting feet on saucer
+      ctx.fillStyle = '#0077b6';
+      ctx.beginPath();
+      ctx.ellipse(-5 * sc, 13 * sc, 3.5 * sc, 2.0 * sc, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(5 * sc, 13 * sc, 3.5 * sc, 2.0 * sc, 0.2, 0, Math.PI * 2);
+      ctx.fill();
       break;
     }
 
     case 'zeus': {
-      // ⚡ Zeus — Vua Thần Tóc Bạc & Tia Sét Lôi Điện
+      // ⚡ Zeus — Vua Thần Tóc Bạc & Tia Sét Lôi Điện Sống Động
       ctx.fillStyle = '#e9ecef';
       ctx.beginPath();
       ctx.arc(0, -5.5 * sc, 11 * sc, 0, Math.PI * 2);
@@ -1566,22 +1897,41 @@ function drawChibiMascot(ctx, cx, cy, mascot, s, time) {
       ctx.arc(0, -2.5 * sc, 8.5 * sc, 0, Math.PI * 2);
       ctx.fill();
 
-      // Lightning Bolt
+      if (!isBlink) {
+        ctx.fillStyle = '#3a0ca3';
+        ctx.beginPath();
+        ctx.arc(-3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.arc(3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Crackling Animated Lightning Bolt
+      const boltJitter = (Math.sin(time * 0.4) > 0.3) ? (Math.random() - 0.5) * 4 : 0;
       ctx.fillStyle = '#ffee32';
+      ctx.shadowColor = '#ffff3f';
+      ctx.shadowBlur = 10;
       ctx.beginPath();
-      ctx.moveTo(12 * sc, -12 * sc);
+      ctx.moveTo(12 * sc + boltJitter, -12 * sc);
       ctx.lineTo(7 * sc, 0);
       ctx.lineTo(12 * sc, 0);
-      ctx.lineTo(8 * sc, 12 * sc);
+      ctx.lineTo(8 * sc + boltJitter, 14 * sc);
       ctx.lineTo(15 * sc, -2 * sc);
       ctx.lineTo(10 * sc, -2 * sc);
       ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Sitting feet on saucer
+      ctx.fillStyle = '#3c096c';
+      ctx.beginPath();
+      ctx.ellipse(-5 * sc, 13 * sc, 3.5 * sc, 2.0 * sc, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(5 * sc, 13 * sc, 3.5 * sc, 2.0 * sc, 0.2, 0, Math.PI * 2);
       ctx.fill();
       break;
     }
 
     default: {
-      // Mythological Mascot Crest
+      // General Mythological Crest
       ctx.fillStyle = '#ffd700';
       ctx.beginPath();
       ctx.arc(0, 0, 8 * sc, 0, Math.PI * 2);
@@ -1590,6 +1940,7 @@ function drawChibiMascot(ctx, cx, cy, mascot, s, time) {
       ctx.beginPath();
       ctx.arc(0, 0, 5.5 * sc, 0, Math.PI * 2);
       ctx.fill();
+      drawSparkleStar(ctx, 0, 0, 4 * sc + Math.sin(time * 0.1) * 1.5, 1.0);
       break;
     }
   }
