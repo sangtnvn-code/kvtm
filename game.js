@@ -952,11 +952,20 @@ function triggerPotBounce(plot, amount = 1.32) {
   plot.springVelY = -0.06;
 }
 
-// ── HD ZODIAC POT SPRITE SHEET ────────────────────────────────────────
-const zodiacSheetImg = new Image();
-zodiacSheetImg.src = 'assets/zodiac_pots.jpg';
-let zodiacSheetLoaded = false;
-zodiacSheetImg.onload = () => { zodiacSheetLoaded = true; };
+// ── INDIVIDUAL HD POT IMAGE CACHE & SPRITE SHEET ────────────────────
+const POT_IMAGE_CACHE = {};
+POT_GRADES.forEach(g => {
+  if (g.imageSrc) {
+    const img = new Image();
+    img.src = g.imageSrc;
+    POT_IMAGE_CACHE[g.id] = img;
+  }
+});
+
+const cleanPotsSheetImg = new Image();
+cleanPotsSheetImg.src = 'assets/zodiac_pots_clean.jpg';
+let cleanPotsLoaded = false;
+cleanPotsSheetImg.onload = () => { cleanPotsLoaded = true; };
 
 // ── POTS ──────────────────────────────────────────────────────────────
 function drawCloudPots(c, ci, pos) {
@@ -973,12 +982,12 @@ function drawCloudPots(c, ci, pos) {
 function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
   const g = POT_GRADES[grade] || POT_GRADES[0];
   const s = Math.min(cloudScale, 1);
-  const PW = (CFG.POT_W || 56) * s * 1.10;
-  const PH = (CFG.POT_H || 42) * s * 1.06;
-  const topW = PW * 0.94;
-  const baseW = PW * 0.72;
-  const rimH = PH * 0.26;
-  const top = cy - PH * 0.26;
+  const PW = (CFG.POT_W || 56) * s * 1.12;
+  const PH = (CFG.POT_H || 42) * s * 1.08;
+  const topW = PW * 0.96;
+  const baseW = PW * 0.74;
+  const rimH = PH * 0.28;
+  const top = cy - PH * 0.28;
   const bot = cy + PH * 0.68;
 
   ctx.save();
@@ -1014,15 +1023,15 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
   ctx.scale(scX, scY);
   ctx.translate(-cx, -cy);
 
-  // ── 0. Soft Multi-Layered Ambient Contact Shadow on Cloud
+  // ── 0. Soft Ambient Contact Shadow on Cloud
   const shadowSpread = (1 - (floatWave + hoverOffset) * 0.04);
   ctx.beginPath();
-  ctx.ellipse(cx, bot + 6, baseW * 1.15 * shadowSpread, Math.max(2, 7 * s * shadowSpread), 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, bot + 6, baseW * 1.18 * shadowSpread, Math.max(2, 7.5 * s * shadowSpread), 0, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(35, 10, 60, 0.28)';
   ctx.fill();
 
   ctx.beginPath();
-  ctx.ellipse(cx, bot + 4, baseW * 0.85 * shadowSpread, Math.max(1.5, 4 * s * shadowSpread), 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, bot + 4, baseW * 0.88 * shadowSpread, Math.max(1.5, 4.5 * s * shadowSpread), 0, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(20, 5, 40, 0.35)';
   ctx.fill();
 
@@ -1036,25 +1045,77 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
     ctx.shadowBlur = 24;
   }
 
-  // ── 🌟 AUTHENTIC HD ZODIAC SPRITE RENDERING (Ảnh nghệ thuật gốc 100% giống thật)
-  if (g.spriteCol !== null && g.spriteCol !== undefined && zodiacSheetImg.complete && zodiacSheetImg.naturalWidth > 0) {
-    const cellW = 1792 / 4;
-    const cellH = 1024 / 3;
-    const sx = g.spriteCol * cellW + 18;
-    const sy = g.spriteRow * cellH + 12;
-    const sw = cellW - 36;
-    const sh = cellH - 24;
+  // ── 🌟 PRIORITY 1: RENDER DEDICATED TRANSPARENT HD POT PNG
+  const potImg = POT_IMAGE_CACHE[g.id];
+  if (potImg && potImg.complete && potImg.naturalWidth > 0) {
+    const potDestW = 88 * s;
+    const potDestH = 88 * s;
+    const potDestX = cx - potDestW * 0.5;
+    const potDestY = cy - potDestH * 0.54;
 
-    const potDestW = 96 * s;
-    const potDestH = 82 * s;
+    // Draw full pristine pot with golden handles and saucer plate directly (100% transparent PNG)
+    ctx.drawImage(potImg, potDestX, potDestY, potDestW, potDestH);
+
+    // Water moisture sparkle dots & glistening dew on soil when watered
+    if (plant && plant.watered) {
+      const moistTime = frameCount * 0.08 + slotSeed;
+      ctx.fillStyle = 'rgba(116, 215, 255, 0.95)';
+      ctx.shadowColor = '#60d5ff';
+      ctx.shadowBlur = 6;
+      for (let i = 0; i < 4; i++) {
+        const mx = cx + Math.sin(moistTime + i * 1.8) * (topW * 0.22);
+        const my = cy - PH * 0.28 + Math.cos(moistTime + i * 1.8) * (rimH * 0.28);
+        ctx.beginPath();
+        ctx.arc(mx, my, 1.4 * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+    }
+
+    // Star Glints & Sparkling Twinkles on Pot Rim
+    const glintT = (frameCount * 0.05 + grade) % (Math.PI * 2);
+    const glintA = Math.max(0, Math.sin(glintT));
+    if (glintA > 0.05) {
+      const glintX = cx - topW * 0.36 + Math.cos(grade) * 6;
+      const glintY = cy - PH * 0.30;
+      drawSparkleStar(ctx, glintX, glintY, 3.8 * s + glintA * 3.5, glintA);
+    }
+
+    ctx.restore();
+    return;
+  }
+
+  // ── 🌟 PRIORITY 2: RENDER FROM CLEAN SPRITE SHEET (FALLBACK)
+  if (g.spriteCol !== null && g.spriteCol !== undefined && cleanPotsSheetImg.complete && cleanPotsSheetImg.naturalWidth > 0) {
+    const rawW = cleanPotsSheetImg.naturalWidth || 1792;
+    const rawH = cleanPotsSheetImg.naturalHeight || 1024;
+    const cellW = rawW / 4;
+    const cellH = rawH / 3;
+
+    // Centered crop on the pot inside cell
+    const cxCenter = g.spriteCol * cellW + cellW * 0.50;
+    const cyCenter = g.spriteRow * cellH + cellH * 0.51;
+    const sw = cellW * 0.68;
+    const sh = cellH * 0.64;
+    const sx = cxCenter - sw * 0.5;
+    const sy = cyCenter - sh * 0.5;
+
+    const potDestW = 92 * s;
+    const potDestH = 74 * s;
     const potDestX = cx - potDestW * 0.5;
     const potDestY = cy - potDestH * 0.5 - 2 * s;
 
-    // Draw authentic HD illustration
-    ctx.drawImage(zodiacSheetImg, sx, sy, sw, sh, potDestX, potDestY, potDestW, potDestH);
+    ctx.save();
+    // Smooth oval clip hugging pot body and handles
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 1.5 * s, potDestW * 0.49, potDestH * 0.47, 0, 0, Math.PI * 2);
+    ctx.clip();
 
-    // Soil Surface with Texture Specks on top
-    const dirtGrd = ctx.createRadialGradient(cx, top + rimH * 0.38, 2, cx, top + rimH * 0.38, topW * 0.42);
+    ctx.drawImage(cleanPotsSheetImg, sx, sy, sw, sh, potDestX, potDestY, potDestW, potDestH);
+    ctx.restore();
+
+    // Soil Surface on top of opening with nutrient specks & water sparkles
+    const dirtGrd = ctx.createRadialGradient(cx, top + rimH * 0.38, 2, cx, top + rimH * 0.38, topW * 0.38);
     if (plant && plant.watered) {
       dirtGrd.addColorStop(0, '#3a506b');
       dirtGrd.addColorStop(0.5, '#1c2541');
@@ -1066,7 +1127,7 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
     }
     ctx.fillStyle = dirtGrd;
     ctx.beginPath();
-    ctx.ellipse(cx, top + rimH * 0.38, topW * 0.42, rimH * 0.44, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, top + rimH * 0.38, topW * 0.34, rimH * 0.38, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Water moisture sparkle dots on soil
@@ -1076,8 +1137,8 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
       ctx.shadowColor = '#60d5ff';
       ctx.shadowBlur = 6;
       for (let i = 0; i < 3; i++) {
-        const mx = cx + Math.sin(moistTime + i * 2) * (topW * 0.24);
-        const my = top + rimH * 0.38 + Math.cos(moistTime + i * 2) * (rimH * 0.20);
+        const mx = cx + Math.sin(moistTime + i * 2) * (topW * 0.20);
+        const my = top + rimH * 0.38 + Math.cos(moistTime + i * 2) * (rimH * 0.16);
         ctx.beginPath();
         ctx.arc(mx, my, 1.3 * s, 0, Math.PI * 2);
         ctx.fill();
@@ -1099,8 +1160,8 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
   }
 
   // ── 1. Saucer Tray (Đế đĩa lót gốm sứ 3D cao cấp ở dưới cùng)
-  const trayW = PW * 1.16;
-  const trayH = PH * 0.30;
+  const trayW = PW * 1.20;
+  const trayH = PH * 0.32;
   const trayY = bot - 2;
 
   // Tray lower bevel
@@ -1111,7 +1172,7 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
   trayGrd.addColorStop(1, darken(g.saucer || g.body2, 35));
 
   ctx.beginPath();
-  ctx.ellipse(cx, trayY + 4.5 * s, trayW * 0.49, trayH * 0.54, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, trayY + 4.8 * s, trayW * 0.49, trayH * 0.54, 0, 0, Math.PI * 2);
   ctx.fillStyle = trayGrd;
   ctx.fill();
 
@@ -1122,7 +1183,7 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
   ctx.fill();
 
   // Golden Inlay Line on Saucer
-  ctx.strokeStyle = grade >= 1 ? 'rgba(255, 225, 120, 0.85)' : 'rgba(255, 230, 160, 0.5)';
+  ctx.strokeStyle = grade >= 1 ? 'rgba(255, 225, 120, 0.9)' : 'rgba(255, 230, 160, 0.5)';
   ctx.lineWidth = 1.4 * s;
   ctx.stroke();
 
@@ -1131,7 +1192,7 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
     const gemColors = ['#ffd700', '#00f5d4', '#ff70a6', '#ffee32'];
     for (let i = 0; i < 4; i++) {
       const spAng = frameCount * 0.025 + i * (Math.PI / 2) + slotSeed;
-      const spX = cx + Math.cos(spAng) * (trayW * 0.46);
+      const spX = cx + Math.cos(spAng) * (trayW * 0.47);
       const spY = trayY + Math.sin(spAng) * (trayH * 0.28);
 
       ctx.save();
@@ -1149,9 +1210,43 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
     }
   }
 
-  // ── 2. Chubby Porcelain Pot Belly (Thân chậu sứ tròn trĩnh, bóng gương 3D)
-  const bellyGrd = ctx.createRadialGradient(cx - PW * 0.18, cy - PH * 0.08, 2, cx, cy, PW * 0.68);
-  if (grade >= 13 && (g.mascot === 'omniverse' || g.mascot === 'phoenix')) {
+  // ── 2. Royal Golden Handles (Quai cầm hoàng gia uốn lượn 2 bên chậu)
+  if (grade >= 1) {
+    ctx.save();
+    const handleGrd = ctx.createLinearGradient(cx - PW * 0.65, cy, cx + PW * 0.65, cy);
+    handleGrd.addColorStop(0, '#ffd700');
+    handleGrd.addColorStop(0.5, '#fff0a0');
+    handleGrd.addColorStop(1, '#d4af37');
+
+    ctx.strokeStyle = handleGrd;
+    ctx.lineWidth = 3.2 * s;
+    ctx.lineCap = 'round';
+
+    // Left Handle
+    ctx.beginPath();
+    ctx.moveTo(cx - topW * 0.46, top + PH * 0.25);
+    ctx.bezierCurveTo(
+      cx - PW * 0.76, top + PH * 0.15,
+      cx - PW * 0.76, top + PH * 0.65,
+      cx - baseW * 0.48, bot - PH * 0.2
+    );
+    ctx.stroke();
+
+    // Right Handle
+    ctx.beginPath();
+    ctx.moveTo(cx + topW * 0.46, top + PH * 0.25);
+    ctx.bezierCurveTo(
+      cx + PW * 0.76, top + PH * 0.15,
+      cx + PW * 0.76, top + PH * 0.65,
+      cx + baseW * 0.48, bot - PH * 0.2
+    );
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── 3. Chubby Porcelain Pot Belly (Thân chậu gốm bóng tròn mịn màng)
+  const bellyGrd = ctx.createRadialGradient(cx - PW * 0.18, cy - PH * 0.08, 2, cx, cy, PW * 0.70);
+  if (grade >= 18) {
     // Cosmic Nebula Shifter
     const hue = (frameCount * 0.9 + slotSeed * 30) % 360;
     bellyGrd.addColorStop(0, `hsl(${hue}, 95%, 75%)`);
@@ -1182,14 +1277,14 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
   ctx.fillStyle = bellyGrd;
   ctx.fill();
 
-  // ── 3. Multi-Layer Wavy Horizontal Decorative Ribbons (Họa tiết lượn sóng sứ tinh xảo)
+  // ── 4. Multi-Layer Wavy Horizontal Decorative Ribbons (Họa tiết lượn sóng sứ tinh xảo)
   ctx.save();
   for (let w = 0; w < 2; w++) {
-    const waveY = top + PH * (0.40 + w * 0.24);
+    const waveY = top + PH * (0.38 + w * 0.25);
     const waveAmp = 2.8 * s;
     const waveFreq = 0.13;
-    const startX = cx - PW * (0.46 - w * 0.05);
-    const endX   = cx + PW * (0.46 - w * 0.05);
+    const startX = cx - PW * (0.47 - w * 0.05);
+    const endX   = cx + PW * (0.47 - w * 0.05);
 
     // Subtle dark wave shade beneath
     ctx.beginPath();
@@ -1198,8 +1293,8 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
       const wy = waveY + 1.5 + Math.sin((wx - cx) * waveFreq + frameCount * 0.02 + w) * waveAmp;
       ctx.lineTo(wx, wy);
     }
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-    ctx.lineWidth = 3.0 * s;
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.22)';
+    ctx.lineWidth = 3.2 * s;
     ctx.stroke();
 
     // Main bright wave
@@ -1209,13 +1304,53 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
       const wy = waveY + Math.sin((wx - cx) * waveFreq + frameCount * 0.02 + w) * waveAmp;
       ctx.lineTo(wx, wy);
     }
-    ctx.strokeStyle = g.waveColor || 'rgba(255,255,255,0.6)';
-    ctx.lineWidth = 2.4 * s;
+    ctx.strokeStyle = g.waveColor || 'rgba(255,255,255,0.65)';
+    ctx.lineWidth = 2.5 * s;
     ctx.stroke();
   }
   ctx.restore();
 
-  // ── 4. Dual Specular Curved Light Streaks (Ánh sáng phản chiếu bóng gương hai bên)
+  // ── 5. Golden Zodiac / Deity Crest Medallion (Gia huy hoàng kim ở trung tâm thân chậu)
+  if (grade >= 1) {
+    ctx.save();
+    const crestY = cy + PH * 0.18;
+    const crestR = 10.5 * s;
+
+    // Golden circular base
+    const crestGrd = ctx.createRadialGradient(cx - 2 * s, crestY - 2 * s, 1, cx, crestY, crestR);
+    crestGrd.addColorStop(0, '#fff3b0');
+    crestGrd.addColorStop(0.5, '#ffd700');
+    crestGrd.addColorStop(1, '#b8860b');
+
+    ctx.fillStyle = crestGrd;
+    ctx.beginPath();
+    ctx.arc(cx, crestY, crestR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Embossed gold ring
+    ctx.strokeStyle = '#fff0a0';
+    ctx.lineWidth = 1.4 * s;
+    ctx.stroke();
+
+    // Inner shadow circle
+    ctx.fillStyle = darken(g.body2, 35);
+    ctx.beginPath();
+    ctx.arc(cx, crestY, crestR * 0.78, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Zodiac / Deity Icon Sign
+    ctx.font = `bold ${Math.round(10.5 * s)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffd700';
+    ctx.shadowColor = '#fff0a0';
+    ctx.shadowBlur = 4;
+    ctx.fillText(g.icon || g.sign || '✨', cx, crestY + 0.5);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  // ── 6. Dual Specular Curved Light Streaks (Ánh sáng phản chiếu bóng gương hai bên)
   // Main Left Highlight
   ctx.save();
   ctx.globalAlpha = hover ? 0.46 : 0.30;
@@ -1251,7 +1386,7 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
   ctx.fill();
   ctx.restore();
 
-  // ── 5. Pot Rim Collar (Miệng chậu tròn 3D có viền vàng kim)
+  // ── 7. Pot Rim Collar (Miệng chậu tròn 3D có viền vàng kim)
   ctx.shadowBlur = 0;
   const rimGrd = ctx.createLinearGradient(cx - topW / 2, top, cx + topW / 2, top + rimH);
   rimGrd.addColorStop(0, lighten(g.rim || '#c88', 22));
@@ -1268,7 +1403,7 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
   ctx.lineWidth = 1.4 * s;
   ctx.stroke();
 
-  // ── 6. Soil Surface with Texture Specks (Lòng đất dinh dưỡng màu mỡ)
+  // ── 8. Soil Surface with Texture Specks (Lòng đất dinh dưỡng màu mỡ)
   const dirtGrd = ctx.createRadialGradient(cx, top + rimH * 0.42, 2, cx, top + rimH * 0.42, topW * 0.44);
   if (plant && plant.watered) {
     dirtGrd.addColorStop(0, '#3a506b');
@@ -1310,12 +1445,7 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
     ctx.shadowBlur = 0;
   }
 
-  // ── 7. Detailed 3D Chibi Mascot Illustration (Nhân vật Chibi tinh xảo ôm trọn thân chậu)
-  if (grade >= 1 && g.mascot) {
-    drawChibiMascot(ctx, cx, cy + PH * 0.12, g.mascot, s, frameCount + slotSeed * 10);
-  }
-
-  // ── 8. Star Glints & Sparkling Highlights on Pot Rim
+  // ── 9. Star Glints & Sparkling Highlights on Pot Rim
   if (grade >= 1) {
     const glintT = (frameCount * 0.05 + grade) % (Math.PI * 2);
     const glintA = Math.max(0, Math.sin(glintT));
@@ -1323,625 +1453,6 @@ function drawPot(cx, cy, hover, plant, cloudScale, grade, plot) {
       const glintX = cx - topW * 0.36 + Math.cos(grade) * 6;
       const glintY = top + rimH * 0.28;
       drawSparkleStar(ctx, glintX, glintY, 3.8 * s + glintA * 3.5, glintA);
-    }
-  }
-
-  ctx.restore();
-}
-
-/**
- * Vẽ nhân vật Chibi Hoàng Đạo / Thần Thoại 3D ngồi vắt chân trên đĩa lót, ôm chậu, chớp mắt & hoạt ảnh sống động
- */
-function drawChibiMascot(ctx, cx, cy, mascot, s, time) {
-  ctx.save();
-  const mX = cx;
-  const mY = cy;
-
-  // Mascot scale & natural breathing oscillation
-  const sc = s * 1.62;
-  const breath = Math.sin(time * 0.07) * 1.6 * s;
-  const sway = Math.sin(time * 0.04) * 0.035;
-  ctx.translate(mX, mY + breath);
-  ctx.rotate(sway);
-
-  // Natural Blinking Anime Eyes Simulation (Chớp mắt tự nhiên)
-  const blinkCycle = (time * 0.04) % 7;
-  const isBlink = blinkCycle < 0.22;
-
-  switch (mascot) {
-    case 'leo': {
-      // 🦁 Leo — Chibi Vua Sư Tử Ngồi Vắt Chân Lên Đĩa Lót Chậu
-      const tailWag = Math.sin(time * 0.16) * 0.25;
-
-      // 1. Animated Royal Lion Tail (Đuôi sư tử đung đưa sau chậu)
-      ctx.save();
-      ctx.translate(-14 * sc, 10 * sc);
-      ctx.rotate(tailWag);
-      ctx.strokeStyle = '#ffa200';
-      ctx.lineWidth = 3.5 * sc;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(-10 * sc, -4 * sc, -14 * sc, -12 * sc);
-      ctx.stroke();
-      ctx.fillStyle = '#ff7b00';
-      ctx.beginPath();
-      ctx.arc(-14 * sc, -12 * sc, 4.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-
-      // 2. Lush Lion Mane (Bờm sư tử dày dặn xòe rộng bao quanh chậu)
-      ctx.fillStyle = '#ff7b00';
-      ctx.beginPath();
-      for (let i = 0; i < 12; i++) {
-        const ang = (i / 12) * Math.PI * 2;
-        const maneBreath = Math.sin(time * 0.1 + i) * 0.8 * sc;
-        ctx.arc(Math.cos(ang) * (15 * sc + maneBreath), -4 * sc + Math.sin(ang) * (13 * sc + maneBreath), 6.5 * sc, 0, Math.PI * 2);
-      }
-      ctx.fill();
-
-      // Inner golden mane highlights
-      ctx.fillStyle = '#ffa200';
-      ctx.beginPath();
-      for (let i = 0; i < 8; i++) {
-        const ang = (i / 8) * Math.PI * 2 + 0.26;
-        ctx.arc(Math.cos(ang) * 11 * sc, -4 * sc + Math.sin(ang) * 10 * sc, 5.0 * sc, 0, Math.PI * 2);
-      }
-      ctx.fill();
-
-      // 3. Chibi Face
-      ctx.fillStyle = '#ffe5b4';
-      ctx.beginPath();
-      ctx.arc(0, -4 * sc, 9.8 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 4. Ears with Cute Wiggle
-      const earWig = Math.sin(time * 0.12) * 0.1;
-      ctx.fillStyle = '#ff9100';
-      ctx.beginPath();
-      ctx.arc(-8.5 * sc, -12 * sc + earWig * sc, 4.0 * sc, 0, Math.PI * 2);
-      ctx.arc(8.5 * sc, -12 * sc - earWig * sc, 4.0 * sc, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#ffb3c6';
-      ctx.beginPath();
-      ctx.arc(-8.5 * sc, -12 * sc + earWig * sc, 2.2 * sc, 0, Math.PI * 2);
-      ctx.arc(8.5 * sc, -12 * sc - earWig * sc, 2.2 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 5. Anime Eyes with Blinking
-      if (isBlink) {
-        // Cute smiling closed eyes ⌒ ⌒
-        ctx.strokeStyle = '#3a1500';
-        ctx.lineWidth = 1.6 * sc;
-        ctx.beginPath();
-        ctx.arc(-4 * sc, -4 * sc, 2.2 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.arc(4 * sc, -4 * sc, 2.2 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.stroke();
-      } else {
-        // Big round shiny anime eyes with double catchlights
-        ctx.fillStyle = '#3a1500';
-        ctx.beginPath();
-        ctx.arc(-3.8 * sc, -4.5 * sc, 2.5 * sc, 0, Math.PI * 2);
-        ctx.arc(3.8 * sc, -4.5 * sc, 2.5 * sc, 0, Math.PI * 2);
-        ctx.fill();
-        // Catchlights
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(-4.5 * sc, -5.2 * sc, 1.1 * sc, 0, Math.PI * 2);
-        ctx.arc(3.1 * sc, -5.2 * sc, 1.1 * sc, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(-3.2 * sc, -3.8 * sc, 0.6 * sc, 0, Math.PI * 2);
-        ctx.arc(4.4 * sc, -3.8 * sc, 0.6 * sc, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // 6. Cute Smile & Blush
-      ctx.fillStyle = '#ff6b6b';
-      ctx.beginPath();
-      ctx.arc(-6 * sc, -1.5 * sc, 2.2 * sc, 0, Math.PI * 2);
-      ctx.arc(6 * sc, -1.5 * sc, 2.2 * sc, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#7a2200';
-      ctx.beginPath();
-      ctx.arc(0, -3.0 * sc, 0.8 * sc, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#7a2200';
-      ctx.lineWidth = 0.8 * sc;
-      ctx.beginPath();
-      ctx.arc(0, -2.0 * sc, 1.6 * sc, 0.1, Math.PI - 0.1);
-      ctx.stroke();
-
-      // 7. Paws Grasping Pot Belly & Torso
-      ctx.fillStyle = '#ffb703';
-      ctx.beginPath();
-      ctx.arc(0, 6.5 * sc, 6.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Arms embracing pot
-      ctx.fillStyle = '#ffa200';
-      ctx.beginPath();
-      ctx.arc(-11 * sc, 2.5 * sc, 3.8 * sc, 0, Math.PI * 2);
-      ctx.arc(11 * sc, 2.5 * sc, 3.8 * sc, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#ffb3c6';
-      ctx.beginPath();
-      ctx.arc(-11 * sc, 2.5 * sc, 1.8 * sc, 0, Math.PI * 2);
-      ctx.arc(11 * sc, 2.5 * sc, 1.8 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 8. Sitting Legs Dangling Over Saucer Tray (Chân vắt lên đĩa lót)
-      ctx.fillStyle = '#ffa200';
-      ctx.beginPath();
-      // Left foot resting on saucer
-      ctx.ellipse(-6 * sc, 13 * sc, 3.8 * sc, 2.4 * sc, -0.2, 0, Math.PI * 2);
-      // Right foot resting on saucer
-      ctx.ellipse(6 * sc, 13 * sc, 3.8 * sc, 2.4 * sc, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#ffb3c6';
-      ctx.beginPath();
-      ctx.arc(-6 * sc, 13 * sc, 1.6 * sc, 0, Math.PI * 2);
-      ctx.arc(6 * sc, 13 * sc, 1.6 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 9. Royal Staff with Pulsing Star Sparkles
-      ctx.strokeStyle = '#ffd700';
-      ctx.lineWidth = 2 * sc;
-      ctx.beginPath();
-      ctx.moveTo(11 * sc, 0);
-      ctx.lineTo(11 * sc, 14 * sc);
-      ctx.stroke();
-      drawSparkleStar(ctx, 11 * sc, -1 * sc, 4.5 * sc + Math.sin(time * 0.1) * 1.5, 1.0);
-      break;
-    }
-
-    case 'sagittarius': {
-      // 🏹 Sagittarius — Thần Cung Thủ Ngồi Vắt Chân & Giương Cung Thần
-      // 1. Winged Golden Tiara with Sapphire
-      ctx.fillStyle = '#ffd700';
-      ctx.beginPath();
-      ctx.moveTo(-14 * sc, -14 * sc);
-      ctx.lineTo(-5 * sc, -10 * sc);
-      ctx.lineTo(0, -17 * sc);
-      ctx.lineTo(5 * sc, -10 * sc);
-      ctx.lineTo(14 * sc, -14 * sc);
-      ctx.lineTo(8 * sc, -8 * sc);
-      ctx.lineTo(-8 * sc, -8 * sc);
-      ctx.closePath();
-      ctx.fill();
-
-      // Center sapphire
-      ctx.fillStyle = '#00b4d8';
-      ctx.beginPath();
-      ctx.arc(0, -12 * sc, 2.4 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 2. Chibi Face
-      ctx.fillStyle = '#fcd5b5';
-      ctx.beginPath();
-      ctx.arc(0, -3.5 * sc, 9.8 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 3. Flowing Red Beard Blowing in the Wind
-      const beardWind = Math.sin(time * 0.12) * 1.5 * sc;
-      ctx.fillStyle = '#d00000';
-      ctx.beginPath();
-      ctx.moveTo(-7 * sc, -1.5 * sc);
-      ctx.quadraticCurveTo(beardWind, 10 * sc, 7 * sc, -1.5 * sc);
-      ctx.quadraticCurveTo(beardWind, 14 * sc, -7 * sc, -1.5 * sc);
-      ctx.fill();
-
-      // 4. Hero Eyes with Blinking
-      if (isBlink) {
-        ctx.strokeStyle = '#1d3557';
-        ctx.lineWidth = 1.6 * sc;
-        ctx.beginPath();
-        ctx.arc(-3.6 * sc, -4 * sc, 2.2 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.arc(3.6 * sc, -4 * sc, 2.2 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = '#1d3557';
-        ctx.beginPath();
-        ctx.arc(-3.6 * sc, -4.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.arc(3.6 * sc, -4.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(-4.2 * sc, -5.2 * sc, 1.0 * sc, 0, Math.PI * 2);
-        ctx.arc(3.0 * sc, -5.2 * sc, 1.0 * sc, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // 5. Cyan Tunic & Sitting Legs on Saucer
-      ctx.fillStyle = '#48cae4';
-      ctx.beginPath();
-      ctx.arc(0, 6.5 * sc, 6.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Boots resting on saucer
-      ctx.fillStyle = '#7a3b00';
-      ctx.beginPath();
-      ctx.ellipse(-6 * sc, 13.5 * sc, 4.0 * sc, 2.2 * sc, -0.2, 0, Math.PI * 2);
-      ctx.ellipse(6 * sc, 13.5 * sc, 4.0 * sc, 2.2 * sc, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 6. Golden Bow with Energy Arrow
-      ctx.strokeStyle = '#ffd700';
-      ctx.lineWidth = 2.4 * sc;
-      ctx.beginPath();
-      ctx.arc(12 * sc, 1 * sc, 10 * sc, -Math.PI * 0.45, Math.PI * 0.45);
-      ctx.stroke();
-
-      // Pulsing energy star
-      drawSparkleStar(ctx, 17 * sc, 1 * sc, 4 * sc + Math.sin(time * 0.15) * 1.5, 1.0);
-      break;
-    }
-
-    case 'gemini': {
-      // 👼 Gemini — Thiên Thần Sinh Đôi Ngồi Vắt Chân & Vỗ Cánh Thiên Thần
-      const wingFlap = Math.sin(time * 0.1) * 0.25;
-
-      // 1. Spreading Layered Angel Wings with Live Flapping
-      ctx.save();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
-      ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
-      ctx.shadowBlur = 14;
-      ctx.beginPath();
-      ctx.ellipse(-14 * sc, -3 * sc, 10 * sc, 6 * sc, -Math.PI * 0.28 + wingFlap, 0, Math.PI * 2);
-      ctx.ellipse(14 * sc, -3 * sc, 10 * sc, 6 * sc, Math.PI * 0.28 - wingFlap, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.restore();
-
-      // 2. Fluffy Blonde Hair
-      ctx.fillStyle = '#ffeaa7';
-      ctx.beginPath();
-      ctx.arc(0, -6 * sc, 11 * sc, 0, Math.PI * 2);
-      ctx.arc(-8 * sc, -5 * sc, 5.5 * sc, 0, Math.PI * 2);
-      ctx.arc(8 * sc, -5 * sc, 5.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 3. Cute Face
-      ctx.fillStyle = '#ffe5d9';
-      ctx.beginPath();
-      ctx.arc(0, -3 * sc, 9.2 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 4. Golden Angel Halo
-      ctx.strokeStyle = '#ffd700';
-      ctx.lineWidth = 2.2 * sc;
-      ctx.beginPath();
-      ctx.ellipse(0, -15 * sc + Math.sin(time * 0.08) * 1.2 * sc, 9 * sc, 3 * sc, 0, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // 5. Anime Eyes with Blinking
-      if (isBlink) {
-        ctx.strokeStyle = '#0984e3';
-        ctx.lineWidth = 1.6 * sc;
-        ctx.beginPath();
-        ctx.arc(-3.6 * sc, -3.8 * sc, 2.2 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.arc(3.6 * sc, -3.8 * sc, 2.2 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = '#0984e3';
-        ctx.beginPath();
-        ctx.arc(-3.6 * sc, -4 * sc, 2.5 * sc, 0, Math.PI * 2);
-        ctx.arc(3.6 * sc, -4 * sc, 2.5 * sc, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(-4.3 * sc, -4.8 * sc, 1.1 * sc, 0, Math.PI * 2);
-        ctx.arc(2.9 * sc, -4.8 * sc, 1.1 * sc, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.fillStyle = '#ff7675';
-      ctx.beginPath();
-      ctx.arc(-5.5 * sc, -1 * sc, 2.2 * sc, 0, Math.PI * 2);
-      ctx.arc(5.5 * sc, -1 * sc, 2.2 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 6. Sitting Robe & Little Angel Feet on Saucer
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(0, 6 * sc, 6.2 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Cute feet dangling on saucer
-      ctx.fillStyle = '#ffe5d9';
-      ctx.beginPath();
-      ctx.ellipse(-5 * sc, 13 * sc, 3.2 * sc, 2.0 * sc, -0.15, 0, Math.PI * 2);
-      ctx.ellipse(5 * sc, 13 * sc, 3.2 * sc, 2.0 * sc, 0.15, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-
-    case 'aries': {
-      // ♈ Aries — Dũng Sĩ Sừng Cừu Ngồi Vắt Chân
-      ctx.fillStyle = '#ffd700';
-      ctx.beginPath();
-      ctx.arc(-12 * sc, -8 * sc, 6.5 * sc, 0, Math.PI * 2);
-      ctx.arc(12 * sc, -8 * sc, 6.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#cc8800';
-      ctx.beginPath();
-      ctx.arc(-12 * sc, -8 * sc, 3.8 * sc, 0, Math.PI * 2);
-      ctx.arc(12 * sc, -8 * sc, 3.8 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Flame Helmet
-      ctx.fillStyle = '#e63946';
-      ctx.beginPath();
-      ctx.arc(0, -4.5 * sc, 10.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Face
-      ctx.fillStyle = '#ffe5d9';
-      ctx.beginPath();
-      ctx.arc(0, -2.5 * sc, 8.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Eyes
-      if (isBlink) {
-        ctx.strokeStyle = '#b7094c';
-        ctx.lineWidth = 1.6 * sc;
-        ctx.beginPath();
-        ctx.arc(-3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.arc(3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = '#b7094c';
-        ctx.beginPath();
-        ctx.arc(-3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.arc(3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(-4.1 * sc, -4.1 * sc, 0.9 * sc, 0, Math.PI * 2);
-        ctx.arc(2.9 * sc, -4.1 * sc, 0.9 * sc, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Sitting armored legs on saucer
-      ctx.fillStyle = '#ffd700';
-      ctx.beginPath();
-      ctx.ellipse(-6 * sc, 13 * sc, 3.6 * sc, 2.2 * sc, -0.2, 0, Math.PI * 2);
-      ctx.ellipse(6 * sc, 13 * sc, 3.6 * sc, 2.2 * sc, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-
-    case 'taurus': {
-      // ♉ Taurus — Chiến Binh Giáp Xanh Ngồi Vắt Chân
-      ctx.fillStyle = '#ffd700';
-      ctx.beginPath();
-      ctx.moveTo(-15 * sc, -15 * sc); ctx.lineTo(-7 * sc, -6 * sc); ctx.lineTo(-12 * sc, -3 * sc);
-      ctx.moveTo(15 * sc, -15 * sc); ctx.lineTo(7 * sc, -6 * sc); ctx.lineTo(12 * sc, -3 * sc);
-      ctx.fill();
-
-      ctx.fillStyle = '#2d6a4f';
-      ctx.beginPath();
-      ctx.arc(0, -4.5 * sc, 10.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#fceade';
-      ctx.beginPath();
-      ctx.arc(0, -2.5 * sc, 8.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Eyes
-      if (isBlink) {
-        ctx.strokeStyle = '#1b4332';
-        ctx.lineWidth = 1.6 * sc;
-        ctx.beginPath();
-        ctx.arc(-3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.arc(3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = '#1b4332';
-        ctx.beginPath();
-        ctx.arc(-3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.arc(3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Armored green boots on saucer
-      ctx.fillStyle = '#1b4332';
-      ctx.beginPath();
-      ctx.ellipse(-6 * sc, 13 * sc, 3.8 * sc, 2.2 * sc, -0.2, 0, Math.PI * 2);
-      ctx.ellipse(6 * sc, 13 * sc, 3.8 * sc, 2.2 * sc, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-
-    case 'cancer': {
-      // ♋ Cancer — Nàng Tiên Càng Cua Vàng
-      const clawSnap = Math.sin(time * 0.14) * 0.15;
-      ctx.fillStyle = '#ffd166';
-      ctx.beginPath();
-      ctx.arc(-12.5 * sc, -3 * sc + clawSnap * sc, 6.0 * sc, 0, Math.PI * 2);
-      ctx.arc(12.5 * sc, -3 * sc - clawSnap * sc, 6.0 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#00b4d8';
-      ctx.beginPath();
-      ctx.arc(0, -4.5 * sc, 10.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#ffe5d9';
-      ctx.beginPath();
-      ctx.arc(0, -2.5 * sc, 8.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (isBlink) {
-        ctx.strokeStyle = '#023e8a';
-        ctx.lineWidth = 1.6 * sc;
-        ctx.beginPath();
-        ctx.arc(-3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.arc(3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = '#023e8a';
-        ctx.beginPath();
-        ctx.arc(-3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.arc(3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Sitting feet on saucer
-      ctx.fillStyle = '#ffe5d9';
-      ctx.beginPath();
-      ctx.ellipse(-5 * sc, 13 * sc, 3.2 * sc, 2.0 * sc, -0.2, 0, Math.PI * 2);
-      ctx.ellipse(5 * sc, 13 * sc, 3.2 * sc, 2.0 * sc, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-
-    case 'virgo': {
-      // ♍ Virgo — Nàng Tiên Hoa Tím Thuần Khiết
-      ctx.fillStyle = '#c77dff';
-      ctx.beginPath();
-      ctx.arc(0, -5 * sc, 11.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#ffe5d9';
-      ctx.beginPath();
-      ctx.arc(0, -2.5 * sc, 9 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Flower Crown
-      ctx.fillStyle = '#55a630';
-      ctx.beginPath();
-      ctx.ellipse(0, -11 * sc, 9 * sc, 2.5 * sc, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#ff70a6';
-      ctx.beginPath();
-      ctx.arc(-5 * sc, -11 * sc, 3.0 * sc, 0, Math.PI * 2);
-      ctx.arc(0, -12 * sc, 3.2 * sc, 0, Math.PI * 2);
-      ctx.arc(5 * sc, -11 * sc, 3.0 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (isBlink) {
-        ctx.strokeStyle = '#5a189a';
-        ctx.lineWidth = 1.6 * sc;
-        ctx.beginPath();
-        ctx.arc(-3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.arc(3.5 * sc, -3.2 * sc, 2.0 * sc, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = '#5a189a';
-        ctx.beginPath();
-        ctx.arc(-3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.arc(3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Fairy feet on saucer
-      ctx.fillStyle = '#ffe5d9';
-      ctx.beginPath();
-      ctx.ellipse(-5 * sc, 13 * sc, 3.2 * sc, 2.0 * sc, -0.2, 0, Math.PI * 2);
-      ctx.ellipse(5 * sc, 13 * sc, 3.2 * sc, 2.0 * sc, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-
-    case 'aquarius':
-    case 'poseidon': {
-      // ♒ Aquarius / Poseidon — Thủy Thần Đại Dương & Đinh Ba Vàng
-      ctx.fillStyle = '#0077b6';
-      ctx.beginPath();
-      ctx.arc(0, -4.5 * sc, 10.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#fceade';
-      ctx.beginPath();
-      ctx.arc(0, -2.5 * sc, 8.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (!isBlink) {
-        ctx.fillStyle = '#03045e';
-        ctx.beginPath();
-        ctx.arc(-3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.arc(3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Golden Trident with Pulsing Light
-      ctx.strokeStyle = '#ffd700';
-      ctx.lineWidth = 2.4 * sc;
-      ctx.beginPath();
-      ctx.moveTo(10 * sc, 14 * sc); ctx.lineTo(10 * sc, -10 * sc);
-      ctx.moveTo(6 * sc, -6 * sc); ctx.lineTo(14 * sc, -6 * sc);
-      ctx.moveTo(6 * sc, -10 * sc); ctx.lineTo(6 * sc, -6 * sc);
-      ctx.moveTo(14 * sc, -10 * sc); ctx.lineTo(14 * sc, -6 * sc);
-      ctx.stroke();
-      drawSparkleStar(ctx, 10 * sc, -10 * sc, 3.5 * sc + Math.sin(time * 0.12) * 1.5, 1.0);
-
-      // Sitting feet on saucer
-      ctx.fillStyle = '#0077b6';
-      ctx.beginPath();
-      ctx.ellipse(-5 * sc, 13 * sc, 3.5 * sc, 2.0 * sc, -0.2, 0, Math.PI * 2);
-      ctx.ellipse(5 * sc, 13 * sc, 3.5 * sc, 2.0 * sc, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-
-    case 'zeus': {
-      // ⚡ Zeus — Vua Thần Tóc Bạc & Tia Sét Lôi Điện Sống Động
-      ctx.fillStyle = '#e9ecef';
-      ctx.beginPath();
-      ctx.arc(0, -5.5 * sc, 11 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#fceade';
-      ctx.beginPath();
-      ctx.arc(0, -2.5 * sc, 8.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (!isBlink) {
-        ctx.fillStyle = '#3a0ca3';
-        ctx.beginPath();
-        ctx.arc(-3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.arc(3.5 * sc, -3.5 * sc, 2.4 * sc, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Crackling Animated Lightning Bolt
-      const boltJitter = (Math.sin(time * 0.4) > 0.3) ? (Math.random() - 0.5) * 4 : 0;
-      ctx.fillStyle = '#ffee32';
-      ctx.shadowColor = '#ffff3f';
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.moveTo(12 * sc + boltJitter, -12 * sc);
-      ctx.lineTo(7 * sc, 0);
-      ctx.lineTo(12 * sc, 0);
-      ctx.lineTo(8 * sc + boltJitter, 14 * sc);
-      ctx.lineTo(15 * sc, -2 * sc);
-      ctx.lineTo(10 * sc, -2 * sc);
-      ctx.closePath();
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // Sitting feet on saucer
-      ctx.fillStyle = '#3c096c';
-      ctx.beginPath();
-      ctx.ellipse(-5 * sc, 13 * sc, 3.5 * sc, 2.0 * sc, -0.2, 0, Math.PI * 2);
-      ctx.ellipse(5 * sc, 13 * sc, 3.5 * sc, 2.0 * sc, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-
-    default: {
-      // General Mythological Crest
-      ctx.fillStyle = '#ffd700';
-      ctx.beginPath();
-      ctx.arc(0, 0, 8 * sc, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#3c096c';
-      ctx.beginPath();
-      ctx.arc(0, 0, 5.5 * sc, 0, Math.PI * 2);
-      ctx.fill();
-      drawSparkleStar(ctx, 0, 0, 4 * sc + Math.sin(time * 0.1) * 1.5, 1.0);
-      break;
     }
   }
 
@@ -2379,6 +1890,7 @@ function selectTool(tool) {
     water:    'Click vào chậu cây để tưới nước (2× tăng trưởng).',
     harvest:  'Di chuột vào cây chín → nút thu hoạch tự hiện. Hoặc click bất cứ cây chín nào.',
     fertilize:'Click vào cây để chọn phân bón. Sau khi chọn, click các cây khác để bón ngay. Click lại nút 🧪 để đổi phân.',
+    upgrade:  'Click vào bất kỳ chậu nào để mở bảng nâng cấp chậu Hoàng Đạo & Thần Thoại!',
     remove:   'Click vào cây để dọn sạch chậu.',
   };
   document.getElementById('infoPanelContent').innerHTML = tips[tool] + '<div class="tip">💡 Chuột phải vào chậu để nâng cấp!</div>';
