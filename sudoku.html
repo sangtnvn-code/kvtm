@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Sudoku</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(to bottom right, #e3f2fd, #fff); margin: 0; padding: 20px; }
+        .game-container { background: white; border-radius: 24px; box-shadow: 0 8px 32px rgba(150, 179, 190, 0.3); padding: 30px; max-width: 600px; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; align-items: center; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1 style="margin: 0 0 20px 0; color: #4a485e; text-align: center;">Sudoku</h1>
+
+    <div class="controls">
+        <button onclick="setDifficulty('easy')">Dễ</button>
+        <button onclick="setDifficulty('medium')">Trung bình</button>
+        <button onclick="setDifficulty('hard')">Khó</button>
+        <button onclick="newGame()">Làm mới</button>
+    </div>
+
+    <div id="message"></div>
+
+    <div class="grid" id="board"></div>
+
+    <div class="hint-grid" id="hints"></div>
+
+    <div style="text-align: center; color: #666; font-size: 13px; margin-top: 20px;">Nhấn vào ô để chọn • Nhấn vào số để điền</div>
+</div>
+
+<script>
+const board = Array.from({length: 9}, () => Array(9).fill(''));
+let selectedCell = null;
+let difficulty = 'easy';
+let hintsAvailable = true;
+let isSolved = false;
+
+class SudokuGame {
+    constructor() {
+        this.initBoard();
+        this.render();
+    }
+
+    initBoard() {
+        let digits = Array.from('123456789');
+
+        // Fill first 3 rows (backtracking)
+        for (let r = 0; r < 3; r++) {
+            SudokuGame.fillRow(board, digits, () => this.checkBoardValid());
+        }
+
+        // Fill first box
+        SudokuGame.fillBox(board, [0,1,2], digits);
+
+        // Fill other rows based on existing data (backtracking)
+        for (let r = 3; r < 9; r++) {
+            board[r].forEach((cell, c) => {
+                if (cell !== '') SudokuGame.fillBox(board, [r,c], digits);
+            });
+
+            // Fill the box at (r-2,0)-(r,2)
+            SudokuGame.fillBox(board, [r-2,r], digits);
+        }
+    }
+
+    static fillRow(board, digits, checkFn = null) {
+        let usedCols = Array(9).fill(false), usedBoxes = [];
+        for (let i = 0; i < 3; i++) board[0][i] = digits.shift();
+
+        while (!checkFn()) {
+            // Check which columns are free in box [0,1,2]
+            let availableCols = [], nextRow = 4;
+            for (let c = 0; c < 9; c++) {
+                if (!usedCols[c]) availableCols.push(c);
+            }
+
+            let placedCols = [];
+            while (availableCols.length > 3) {
+                let r = board[nextRow][Math.floor(Math.random() * usedCols.length)];
+                SudokuGame.placeNumber(board, nextRow, Math.floor(Math.random() * usedCols.length));
+                usedCols[placedCols.push(r)] = true;
+            }
+
+            for (let i = 0; i < 3; i++) {
+                let rowDigits = Array(9).fill('');
+                for (let j = 0; j < 3; j++) rowDigits[j] = board[nextRow][i + usedCols.length];
+
+                while (availableCols.length > 3) {
+                    let c = availableCols.pop();
+                    SudokuGame.placeNumber(board, nextRow, c);
+                }
+
+                for (let i = 0; i < 3; i++) board[nextRow][i] = rowDigits[i];
+            }
+
+            while (!checkFn()) {}
+        }
+    }
+
+    static placeNumber(board, r, c) {
+        let num = board[r][c], usedBox = [...new Set(board.slice(r,r+3).flat().map(x => x !== '' ? x : 0))];
+        while (usedBox.includes(num)) {
+            do { num = Math.floor(Math.random() * 9) + 1; } while (usedBox.includes(num));
+        }
+
+        board[r][c] = String(num);
+
+        usedCols[usedBox.length - 2] = true;
+
+        for (let i = 0; i < usedBox.length - 3; i++) {
+            let c = usedCols[i + 1];
+            while (board[r][c] === '') board[r][c] = String(Math.floor(Math.random() * 9) + 1);
+
+            let rowDigits = Array(9).fill('');
+            for (let j = 0; j < 3; j++) { rowDigits[j] = board[r][i + usedCols.length + j]; }
+
+            while (availableCols.length > 3) {
+                let c2 = availableCols.pop();
+                board[r][c2] = String(c2);
+                SudokuGame.placeNumber(board, r, c2);
+            }
+
+            for (let i = 0; i < 3; i++) board[r][i + usedCols.length] = rowDigits[i];
+        }
+    }
+
+    static fillBox(board, boxRows, digits) {
+        let rows = Array.from(digits).reverse();
+        while (!this.checkBox(board.slice(boxRows[0], boxRows[1]+3))) {
+            for (let r of boxRows) board[r].forEach((c, i) => board[r][i] = rows.shift());
+            if (rows.length < 9) break;
+        }
+    }
+
+    static checkBox(board) {
+        let row0 = board.slice(0,3);
+        for (let c of [1,4,7]) {
+            let box = [];
+            for (let r in row0) box.push([r,c,r+1,c,r+2,c].flat());
+
+            let usedCols = Array.from(new Set(box.map(([r,i]) => i)));
+            while (usedCols.length < 3) {
+                for (let c = 0; c < 9; c++) if (!usedCols[c]) usedCols.push(c);
+            }
+
+            let rowDigits = Array(9).fill('');
+            for (let r in box) { board[r].forEach((c, i) => rowDigits[i] = c !== '' ? String(Number(c)) : ''); }
+
+            while (usedCols.length > 3) {
+                let c2 = usedCols.pop();
+                rowDigits[box.findIndex(([r,i]) => i === c2)] = c2;
+                board[box.findIndex(([r,i]) => i === c2)][c2] = String(c2);
+
+                let placedCols = [];
+                for (let r in box) {
+                    board[r][i].forEach((c, j) => {
+                        if (!usedCols[j]) placedCols.push(j);
+                    });
+                    usedCols[placedCols.length - 1] = true;
+                }
+
+                let rowDigits2 = Array(9).fill('');
+                for (let r in box) { board[r].forEach((c, i) => rowDigits2[i] = c !== '' ? String(Number(c)) : ''); }
+
+                while (usedCols.length > 3) {
+                    let c3 = usedCols.pop();
+                    rowDigits2[box.findIndex(([r,i]) => i === c3)] = c3;
+                    board[box.findIndex(([r,i]) => i === c3)][c3] = String(c3);
+
+                    placedCols = [];
+                    for (let r in box) {
+                        board[r][i].forEach((cell, j) => {
+                            if (!usedCols[j]) placedCols.push(j);
+                        });
+                        usedCols[placedCols.length - 1] = true;
+                    }
+
+                    for (let i in [0..8]) rowDigits2[i + usedCols.length + 3] += String(i+1);
+                }
+
+                for (let i in box) board[r][i + usedCols.length] = String(rowDigits2[i]);
+            }
+        }
+
+        return !usedCols.some(c => rowDigits[box.findIndex(([r,i]) => i === c)] !== '' && usedBox.includes(Number(rowDigits[c]))) || \n
+            !usedCols.some(c => rowDigits[box.findIndex(([r,i]) => i === c + 3)] !== '' && usedBox.includes(Number(rowDigits[c + 3])));
+    }
+
+    static checkBoardValid() { return SudokuGame.checkRow(board) && SudokuGame.checkColumn(board); }
+
+    static checkRow(board) { for (let r = 0; r < 9; r++) if (!this.setValuesUniqueInRow(board, r)) return false; return true; }
+    static checkColumn(board) { for (let c = 0; c < 9; c++) if (!this.setValuesUniqueInCol(board, c)) return false; return true; }
+
+    static setValuesUniqueInRow(board, r) { let vals = Array.from(new Set([r].flat().map(cell => cell !== '' ? String(Number(cell)) : null))); return !vals.some(v => v !== null && vals.includes(v)); }
+    static setValuesUniqueInCol(board, c) { let vals = Array.from(new Set([c].flat().map(cell => cell !== '' ? String(Number(cell)) : null))); return !vals.some(v => v !== null && vals.includes(v)); }
+
+    render() { this.renderBoard(); this.renderHints(); }
+
+    renderBoard() {
+        const boardEl = document.getElementById('board');
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                let cell = document.createElement('div');
+                cell.className = `cell ${board[r][c] !== '' ? 'filled' : ''} ${selectedCell?.r === r && selectedCell?.c === c ? 'selected' : ''}`;
+
+                if (board[r][c]) {
+                    cell.textContent = board[r][c];
+                    if (!isNaN(board[r][c])) {
+                        cell.onclick = () => { this.handleInput(r, c); };
+
+                        const diff = SudokuGame.getDifficulty();
+                        let isSolvedCell = false;
+
+                        if (diff === 'easy') {
+                            for (let i = 0; i < 9; i++) {
+                                if (!isNaN(board[i][c]) && board[i][c] !== String(c + 1)) {
+                                    cell.classList.add('error');
+                                    SudokuGame.notify(`Cố gắng lại ô ${r+1}:${c+1}`);
+                                    break;
+                                }
+                            }
+                        } else if (diff === 'hard') {
+                            for (let i = 0; i < 9; i++) {
+                                if (!isNaN(board[i][c]) && board[r][i] !== String(i + 1)) {
+                                    cell.classList.add('error');
+                                    SudokuGame.notify(`Cố gắng lại ô ${r+1}:${c+1}`);
+                                    break;
+                                }
+                            }
+
+                            for (let i = 0; i < 9; i++) if (!isNaN(board[r][i]) && board[i][c] !== String(c + 1)) cell.classList.add('error');
+
+                            for (let i = 0; i < 9; i++) {
+                                let boxCells = [r, r+1, r+2].map(r => Array.from(board.slice(3*r, 3*(r+1))).flat()).join('');
+                                if (boxCells.includes(String(c + 1))) cell.classList.add('error');
+                            }
+                        }
+
+                        if (!isNaN(board[r][c]) && board[i][c] === String(c + 1)) isSolvedCell = true;
+                    }
+                } else {
+                    cell.textContent = ' ';
+                    cell.onclick = () => this.selectCell(r, c);
+                    cell.classList.add(difficulty);
+                }
+
+                boardEl.appendChild(cell);
+            }
+        }
+    }
+
+    renderHints() {
+        const hintsEl = document.getElementById('hints');
+        for (let r = 0; r < 9; r++) {
+            let rowHints = [...board[r]].filter(v => !isNaN(Number(v))).map(Number);
+
+            for (let i = 0; i < 9; i++) {
+                if (rowHints.includes(i+1)) continue;
+
+                let cell = document.createElement('div');
+                cell.textContent = String(rowHints[i + 1]);
+
+                let hintCount = rowHints.filter(h => h === i+1).length;
+                cell.innerHTML = `${hintCount !== 0 ? `(${hintCount})` : ''} ${String(i+1)}`;
+
+                cell.onclick = () => this.selectCell(r, i);
+                hintsEl.appendChild(cell);
+            }
+        }
+    }
+
+    selectCell(r, c) { 
+        selectedCell = {r,c}; this.render();
+        hintsAvailable = !board[r][c];
+        this.renderHints();
+    }
+
+    handleInput(r, c) {
+        if (isSolved) return;
+
+        let newBoard = [...board.map(row => row.slice()), [r].flat()];
+        board[r][c] = String(Math.floor(Math.random() * 9) + 1);
+
+        newBoard[0][newBoard[1].indexOf(board[r][c])] = board[r][c];
+        while (!SudokuGame.setValuesUniqueInRow(newBoard, r)) { 
+            for (let i = 2; i < 10; i++) newBoard[i-1].forEach((cell, c) => cell === '' && !board[r][i] ? cell !== '' : '');
+        }
+
+        while (!SudokuGame.setValuesUniqueInCol(newBoard, r)) { 
+            for (let j = 2; j < 9; j++) newBoard[j-1].forEach((cell, c) => cell !== board[r][j]);
+        }
+
+        // Check row uniqueness
+        let colsForRow = Array(9).fill(false);
+        for (let r2 in [0..8]) { 
+            if (!SudokuGame.setValuesUniqueInRow(newBoard, r)) { 
+                board[r][c] = ''; return;
+            }
+
+            if ((newBoard[3*r])[r+c]) colsForRow[r+c] = true;
+        }
+
+        for (let c in [0..8]) {
+            while (!SudokuGame.setValuesUniqueInCol(newBoard, r)) { 
+                for (let j = 2; j < 9; j++) newBoard[j-1].forEach((cell, i) => cell !== board[c][i]);
+            }
+
+            let rowDigits = Array(9).fill('');
+            for (let c in [3*r..3*(r+1)]) { 
+                if (!SudokuGame.setValuesUniqueInRow(newBoard, 3*c)) { board[r][c] = ''; return; }
+
+                if ((newBoard[2*r])[r+c]) rowDigits[i + usedCols.length + 1] += String(i+1);
+            }
+
+            while (usedCols.length > 3) {
+                let c2 = usedCols.pop();
+                rowDigits[box.findIndex(([r,i]) => i === c3)] = String(c3);
+                board[box.findIndex(([r,i]) => i === c3)][c3] = String(c3);
+
+                placedCols = [];
+                for (let r in box) { 
+                    board[r][i].forEach((cell, j) => { if (!usedCols[j]) placedCols.push(j); });
+                    usedCols[placedCols.length - 1] = true;
+                }
+
+                let rowDigits2 = Array(9).fill('');
+                for (let r in box) { board[r].forEach((cell, i) => rowDigits2[i + usedCols.length + 3] += String(i+1)); }
+            }
+
+            for (let i in [0..8]) newBoard[5*i][i + usedCols.length] = rowDigits2[i];
+        }
+    }
+
+    getDifficulty() { return difficulty; }
+
+    static notify(msg) { const el = document.getElementById('message'); if (!el) el = document.createElement('div'); id='message'; el.textContent = msg; }
+}
+
+SudokuGame.setDifficulty = function(d) { 
+    SudokuGame.difficulty = d; 
+    for (let cell of document.querySelectorAll('.cell')) cell.classList.remove('easy','medium','hard'); 
+    cell.classList.add(diff); 
+};
+window.onload = () => new SudokuGame();
